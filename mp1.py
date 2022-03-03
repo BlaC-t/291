@@ -1,6 +1,10 @@
+from distutils.command.clean import clean
 import sqlite3
 import time
 import hashlib
+import getpass
+import os
+
 
 connection = None
 cursor = None
@@ -137,19 +141,10 @@ def define_tables():
 
 def insert_data():
     global connection, cursor
-
-    editors_data = '''
-                    INSERT INTO editors(eid, pwd) VALUES
-                        ('e100', 1001),
-                        ('e200', 1945);
-                        '''
-    customers_data = '''
-                        INSERT INTO customers(cid, name, pwd) VALUES
-                            ('c100', 'Richard He', 1234),
-                            ('c200', 'Eric Kim', 2345);
-                            '''
-    cursor.execute(editors_data)
-    cursor.execute(customers_data)
+    cursor.execute(''' INSERT INTO editors(eid, pwd) VALUES ('e100', 1001);''')
+    cursor.execute(''' INSERT INTO editors(eid, pwd) VALUES ('e200', 1945);''')
+    cursor.execute(''' INSERT INTO customers(cid, name, pwd) VALUES ('c100', 'Richard He', 1234);''')
+    cursor.execute(''' INSERT INTO customers(cid, name, pwd) VALUES ('c200', 'Eric Kim', 2345);''')
     connection.commit()
 
     return
@@ -157,58 +152,66 @@ def insert_data():
 
 def login_screen():
     global connection, cursor
+    user_name=input('User name:')
+    password= getpass.getpass('Pass word')
+    print('you wrote(print as test purpose):',user_name,password)
+    # check user name
+    if 'e' not in user_name and 'c' not in user_name:
+        print("1:sorry, we did not find a matching userid and password.")
+        return
+    elif 'e' in user_name:
+        cursor.execute('SELECT e.pwd FROM editors e WHERE e.eid = :id', {"id": user_name})
+    else:
+        cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_name})
+    useridrec = cursor.fetchone()
+    
+    # find if the customer exist
+    if (useridrec == None) or (type(useridrec)!= tuple):
+        print("2:sorry, we did not find a matching userid and password.")
+        return
+    # password matching
+    if  (password!=useridrec[0]) :
+        print("3:sorry, we did not find a matching userid and password.")
+        return
+    # real person validaed 
+    if 'c' in user_name:
+        customers_menu(user_name)
+    elif 'e' in user_name:
+        editors_menu(user_name)
+    os.system('clear')
+    return
 
-    good_name = False
-    user_name = input("Enter in your user name:  ")
-    cursor.execute('SELECT e.eid FROM editors e WHERE e.eid = :id', {"id": user_name})
-    editors_eid = cursor.fetchone()
-    print(editors_eid[0])
-
-    while not good_name:
-
-        user_name = input("Enter in your user name:  ")
-
-        if "e" or "c" not in user_name:
-            print("Please enter in the correct user name!  ")
-        else:
-            good_name = True
-            pwd = input("Enter in your password:  ")
-            if "e" in user_name:
-                cursor.execute('SELECT e.pwd FROM editors e WHERE e.eid = :id', {"id": user_name})
-                editors_id = cursor.fetchone()
-                print(editors_id)
-            if "c" in user_name:
-                ...
+def editors_menu(eid):
+    print("Login in as editor :id",{"id":eid})
+    input("press enter to exit")
+    return
 
 
-def editors_menu():
-    ...
-
-
-def customers_menu():
-    ...
+def customers_menu(cid):
+    print("Login in as custimer :id",{"id":cid})
+    input("press enter to exit")
+    return
+    
 
 
 def main():
     global connection, cursor
+    # clean the screen
+    os.system('clear')
     path = "./mp1.db"
     connect(path)
     define_tables()
     insert_data()
 
-    end = False
+    welcome=''
 
-    while not end:
+    while welcome.lower()!='n':
         welcome = input("Welcome, do you want to log in (Y) or exit (N):  ")
-        if end:
-            exit()
-        elif welcome.lower() == "n":
-            end = True
-        elif welcome.lower() == 'y':
+        if welcome.lower() == 'y':
             login_screen()
-        else:
+        elif welcome.lower() != 'n':
             print("Please follow instruction! \n ")
-
+    os.system('clear')
 
 if __name__ == "__main__":
     main()
