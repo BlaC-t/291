@@ -3,7 +3,7 @@ import sqlite3
 import time
 import hashlib
 import getpass
-import os
+import os,sys
 
 
 connection = None
@@ -152,66 +152,160 @@ def insert_data():
 
 def login_screen():
     global connection, cursor
-    user_name=input('User name:')
-    password= getpass.getpass('Pass word')
-    print('you wrote(print as test purpose):',user_name,password)
-    # check user name
-    if 'e' not in user_name and 'c' not in user_name:
-        print("1:sorry, we did not find a matching userid and password.")
-        return
-    elif 'e' in user_name:
-        cursor.execute('SELECT e.pwd FROM editors e WHERE e.eid = :id', {"id": user_name})
-    else:
-        cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_name})
-    useridrec = cursor.fetchone()
-    
-    # find if the customer exist
-    if (useridrec == None) or (type(useridrec)!= tuple):
-        print("2:sorry, we did not find a matching userid and password.")
-        return
-    # password matching
-    if  (password!=useridrec[0]) :
-        print("3:sorry, we did not find a matching userid and password.")
-        return
+    # set up user input screen
+    opt_format=[2,['id_name','password',],['password'],'user login:','']
+    user_input=['','']
+    login_sucess=False
+    # info input loop
+    while not login_sucess:
+        user_input,selection=list_input_menu(opt_format,user_input)
+        if selection=='b':
+            return
+        # check user name
+        if 'e' not in user_input[0] and 'c' not in user_input[0]:
+            input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
+        elif 'e' in user_input[0]:
+            cursor.execute('SELECT e.pwd FROM editors e WHERE e.eid = :id', {"id": user_input[0]})
+        else:
+            cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0]})
+        useridrec = cursor.fetchone()
+        # find if the customer exist
+        if (useridrec == None) or (type(useridrec)!= tuple):
+            input("2:sorry, we did not find a matching userid and password.\n enter to continue ")
+        # password matching
+        if  (user_input[1]!=useridrec[0]) :
+            input("3:sorry, we did not find a matching userid and password.\n enter to continue")
+        else:
+            login_sucess=True
     # real person validaed 
-    if 'c' in user_name:
-        customers_menu(user_name)
-    elif 'e' in user_name:
-        editors_menu(user_name)
-    os.system('clear')
+    if 'c' in user_input[0]:
+        customers_menu(user_input[0])
+    elif 'e' in user_input[0]:
+        editors_menu(user_input[0])
     return
 
 def editors_menu(eid):
-    print("Login in as editor :id",{"id":eid})
+    os.system('clear')
+    print("Login in as editor {}".format(eid))
     input("press enter to exit")
     return
 
 
 def customers_menu(cid):
-    print("Login in as custimer :id",{"id":cid})
+    os .system('clear')
+    print("Login in as customer {}".format(cid))
     input("press enter to exit")
     return
-    
 
+def list_input_menu(print_format,user_input):
+    # this list will be present a list of blank space like this:
+    # user name:
+    # password:(hide if serveic bridge requested)
+    # number of argument areallow to be set
+    # argv1=[num input,[nmae of input],[hideen password],msg1(before list),msg2]
+    # argv2=[previously input]
+    selection =''
+    # while use did not quite or submit
+    while selection.lower() not in ['b','s']:
+        # header printing
+        os.system('clear')
+        print(print_format[3])
+        print('-'*20)
+        # each line completed information printing
+        for i in range(print_format[0]):
+            if (print_format[1][i] not in print_format[2]) or user_input[i]=='':
+                print('{}: {:<15}    {}'.format(i,print_format[1][i],user_input[i]))
+            else:
+                print('{}: {:<15}    {}'.format(i,print_format[1][i],'*****'))
+        print('B: go back\nS: submit\n')
+        # user promote their input and input check
+        selection=input('your selection> ')
+        if selection>='0' and selection<='9':
+            # number validation
+            if int(selection)>=print_format[0] or (int(selection)<0):
+                print('invalid selection, enter to continue')
+                input()
+            # if password hidden
+            else:
+                if print_format[1][int(selection)] not in print_format[2]:
+                    user_input[int(selection)]=input('{}: '.format(print_format[1][int(selection)]))
+                else:
+                    user_input[int(selection)]=getpass.getpass('{}: '.format(print_format[1][int(selection)]))
+        elif selection.lower() not in ['b','s']:
+            print('invalid selection, enter to continue')
+            input()
+    return user_input,selection                    
+
+def register_service_bridge():
+    global connection,cursor
+    # set up register
+    opt_format=[3,['id_name','user name','password',],['password'],'new user register:','']
+    user_input=['','','']
+    register_sucess=False
+    while not register_sucess:
+        # request information
+        missed=False
+        user_input,selection=list_input_menu(opt_format,user_input)
+        if selection=='b':
+            return
+        for i in range(len(user_input)):
+           if user_input[i]=='':
+               missed=True
+        if missed:
+            input('some information not complete\n press enter to continue')
+        else:
+            # find if the user are in conflict
+            if 'e' in user_input[0]:
+                cursor.execute('SELECT e.eid FROM editors e WHERE e.eid = :id', {"id": user_input[0]})
+            else:
+                cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0]})
+            useridrec = cursor.fetchone()
+            # input the information into database
+            if useridrec==None:
+                if 'e' in user_input[0]:
+                    txt=''' INSERT INTO editors VALUES ('{}', '{}');'''.format(user_input[0],user_input[2])
+                    print(txt)                                                      
+                    cursor.execute(txt)
+                    connection.commit()
+                    register_sucess=True
+                    input('Sucess! use {} as your login credentials'.format(user_input[0]))
+                if 'c' in user_input[0]:
+                    txt=''' INSERT INTO customers VALUES ('{}', '{}', '{}');'''.format(user_input[0],user_input[1],user_input[2])
+                    cursor.execute(txt)
+                    connection.commit()
+                    register_sucess=True
+                    input('Sucess! use {} as your login credentials'.format(user_input[0]))
+            else:
+                input('id exist,enter to remodify your information')
 
 def main():
     global connection, cursor
     # clean the screen
     os.system('clear')
-    path = "./mp1.db"
+    #print(sys.argv)
+    if len(sys.argv)==1:
+        path = "./mp1.db"
+    else:
+        path = sys.argv[1]
     connect(path)
-    define_tables()
-    insert_data()
-
+    if len(sys.argv)==1:
+        define_tables()
+        insert_data()
+    
     welcome=''
-
-    while welcome.lower()!='n':
-        welcome = input("Welcome, do you want to log in (Y) or exit (N):  ")
-        if welcome.lower() == 'y':
-            login_screen()
-        elif welcome.lower() != 'n':
+    while welcome.lower()!='e':
+        print('Welcome screen','\n connected to database {}'.format(path))
+        print('-'*20)
+        print('1:exising customer and editor log in\n2:register\nE:exit\n')
+        
+        if welcome.lower() not in ['1', '2', 'e','']:
             print("Please follow instruction! \n ")
-    os.system('clear')
+        welcome = input("Enter your selection: ")
+        if welcome.lower() == '1':
+            login_screen()
+        elif welcome.lower() == '2':
+            register_service_bridge()
+        os.system('clear')
 
 if __name__ == "__main__":
     main()
