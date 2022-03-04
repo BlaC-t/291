@@ -268,15 +268,15 @@ def select_menu(info,header):
         if (end>header[0]):
             end = header[0]
         for y in range(start,end,1):
-            txt='{:<3} '.format(y-page*header[1])
-            for x in range(len(header[2])):
+            txt='{:<3} '.format(y-page*header[1]+1)
+            for x in range(len(info[0])):
                 txt+='{:<8} '.format(info[y][x])
             print(txt)
         # printing number of option key allow
         if max_page!=0:
             print('\nshowing {} - {} of {}'.format(start,end,header[0]))
-            print('''L last page\nN next page''')
-        print('''<int> number of option\nB back\n''')
+            print('''\nL last page\nN next page''')
+        print('''\n<int> number of option\nB back\n''')
         # get the user input
         selection=input('indicate your choice> ').lower()
         # exit ,flip page
@@ -288,10 +288,10 @@ def select_menu(info,header):
             page-=1
         else: # number validation
             try:
-                if int(selection)<0:
+                if int(selection)-1<0:
                     input("invalid input\nenter to continue")
                     continue
-                elif int(selection)>=header[1]:
+                elif int(selection)-1>=header[1]:
                     input("invalid input\nenter to continue")
                     continue
             except:
@@ -299,7 +299,7 @@ def select_menu(info,header):
                 continue
             selected=True
             break
-    return int(selection)+header[1]*page
+    return int(selection)-1+header[1]*page
 
 
 
@@ -358,21 +358,19 @@ def main():
     if len(sys.argv)==1:
         define_tables()
         insert_data()
-    
+    info=[['exising customer and editor log in'],['register']]
+    txt1='Welcome screen\nconnected to database {}'.format(path)
+    header=[len(info),0,[],False,txt1,'']
     welcome=''
-    while welcome.lower()!='e':
-        print('Welcome screen','\n connected to database {}'.format(path))
-        print('-'*20)
-        print('1:exising customer and editor log in\n2:register\nE:exit\n')
-        
-        if welcome.lower() not in ['1', '2', 'e','']:
+
+    while str(welcome).lower()!='b':
+        welcome=select_menu(info,header)
+        if welcome not in [0, 1,'b']:
             print("Please follow instruction! \n ")
-        welcome = input("Enter your selection: ")
-        if welcome.lower() == '1':
+        if welcome == 0:
             login_screen()
-        elif welcome.lower() == '2':
+        elif welcome == 1:
             register_service_bridge()
-        os.system('clear')
 
 if __name__ == "__main__":
     main()
