@@ -166,7 +166,7 @@ def login_screen():
             input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
         elif 'e' in user_input[0]:
             cursor.execute('SELECT e.pwd FROM editors e WHERE e.eid = :id', {"id": user_input[0]})
-        else:
+        else: # 确定不用把c写上去嘛
             cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0]})
         useridrec = cursor.fetchone()
         # find if the customer exist
