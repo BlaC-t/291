@@ -166,7 +166,7 @@ def login_screen():
             input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
         elif 'e' in user_input[0]:
             cursor.execute('SELECT e.pwd FROM editors e WHERE e.eid = :id', {"id": user_input[0]})
-        else: # 确定不用把c写上去嘛
+        else:
             cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0]})
         useridrec = cursor.fetchone()
         # find if the customer exist
@@ -235,6 +235,73 @@ def list_input_menu(print_format,user_input):
             print('invalid selection, enter to continue')
             input()
     return user_input,selection                    
+
+def select_menu(info,header):
+    # header=[len(info),3,['name','age','pp'],False,txt1,txt2]
+            # total line #title each col    #show col(T/F)
+                      # showing each page         #(BF) (AF)
+    selected=False
+    page=0
+    #  present index overflow
+    if header[1]>header[0] or header[1]==0:
+        header[1]=header[0]
+    # calc finding the max page
+    max_page=int(header[0]/header[1])
+    if (header[0]%header[1])==0:
+        max_page-=1
+    selection=''
+    # when not selected keeop brwing
+    while not selected:
+        #header printing
+        os.system('clear')
+        print(header[4])
+        print('-'*20)
+        # header printing requested
+        if header[3]:
+            txt='#   '
+            for i in range(header[1]):
+                txt+='{:<8} '.format(header[2][i])
+            print(txt)
+        start=page*header[1]
+        end= (page+1)*header[1]
+        # sometime last page not full
+        if (end>header[0]):
+            end = header[0]
+        for y in range(start,end,1):
+            txt='{:<3} '.format(y-page*header[1])
+            for x in range(len(header[2])):
+                txt+='{:<8} '.format(info[y][x])
+            print(txt)
+        # printing number of option key allow
+        if max_page!=0:
+            print('\nshowing {} - {} of {}'.format(start,end,header[0]))
+            print('''L last page\nN next page''')
+        print('''<int> number of option\nB back\n''')
+        # get the user input
+        selection=input('indicate your choice> ').lower()
+        # exit ,flip page
+        if selection == 'b':
+            return selection
+        elif selection == 'n' and page<max_page:
+            page+=1
+        elif selection =='l' and page>=1:
+            page-=1
+        else: # number validation
+            try:
+                if int(selection)<0:
+                    input("invalid input\nenter to continue")
+                    continue
+                elif int(selection)>=header[1]:
+                    input("invalid input\nenter to continue")
+                    continue
+            except:
+                input("invalid input\nenter to continue")
+                continue
+            selected=True
+            break
+    return int(selection)+header[1]*page
+
+
 
 def register_service_bridge():
     global connection,cursor
