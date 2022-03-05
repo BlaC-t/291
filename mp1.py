@@ -192,9 +192,35 @@ def editors_menu(eid):
 
 
 def customers_menu(cid):
-    os .system('clear')
-    print("Login in as customer {}".format(cid))
-    input("press enter to exit")
+    sessionID=''
+    txt1="Login in as customer {}".format(cid)
+    txt2="no session ID assiged this moment"
+    info=[['Start a session'],['Search for movie'],['end watching a movie'],['end the session']]
+    header=[len(info),0,[],False,txt1,txt2]
+    userinput=''
+
+    while str(userinput).lower()!='b':
+        os.system('clean')
+        if sessionID == '':
+            txt2="no session ID assiged this moment"
+        else:
+            txt2="Current session ID is:{}.".format(sessionID)
+        header[-1]=txt2
+        userinput=select_menu(info,header)
+        if str(userinput) not in ['0','1','2','3','b']:
+            print("Please follow instruction! \n ")
+        elif str(userinput) == '0':
+            print(0)
+            input()
+        elif str(userinput) == '1':
+            print(1)
+            input()
+        elif str(userinput) == '2':
+            print(2)
+            input()
+        elif str(userinput) == '3':
+            print(3)
+            input()
     return
 
 def list_input_menu(print_format,user_input):
@@ -214,19 +240,20 @@ def list_input_menu(print_format,user_input):
         # each line completed information printing
         for i in range(print_format[0]):
             if (print_format[1][i] not in print_format[2]) or user_input[i]=='':
-                print('{}: {:<15}    {}'.format(i,print_format[1][i],user_input[i]))
+                print('{}: {:<15}    {}'.format(i+1,print_format[1][i],user_input[i]))
             else:
-                print('{}: {:<15}    {}'.format(i,print_format[1][i],'*****'))
+                print('{}: {:<15}    {}'.format(i+1,print_format[1][i],'*****'))
         print('B: go back\nS: submit\n')
         # user promote their input and input check
         selection=input('your selection> ')
         if selection>='0' and selection<='9':
             # number validation
-            if int(selection)>=print_format[0] or (int(selection)<0):
+            if int(selection)>print_format[0] or (int(selection)<=0):
                 print('invalid selection, enter to continue')
                 input()
             # if password hidden
             else:
+                selection=str(int(selection)-1)
                 if print_format[1][int(selection)] not in print_format[2]:
                     user_input[int(selection)]=input('{}: '.format(print_format[1][int(selection)]))
                 else:
