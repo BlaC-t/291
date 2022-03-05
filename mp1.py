@@ -1,6 +1,7 @@
+from ast import Return
 from distutils.command.clean import clean
 import sqlite3
-import time
+import time,datetime
 import hashlib
 import getpass
 import os,sys
@@ -198,6 +199,7 @@ def customers_menu(cid):
     info=[['Start a session'],['Search for movie'],['end watching a movie'],['end the session']]
     header=[len(info),0,[],False,txt1,txt2]
     userinput=''
+    starttime=time.time()
 
     while str(userinput).lower()!='b':
         os.system('clean')
@@ -210,8 +212,7 @@ def customers_menu(cid):
         if str(userinput) not in ['0','1','2','3','b']:
             print("Please follow instruction! \n ")
         elif str(userinput) == '0':
-            print(0)
-            input()
+            sessionID,starttime = create_new_session(cid,sessionID,starttime)
         elif str(userinput) == '1':
             print(1)
             input()
@@ -222,6 +223,23 @@ def customers_menu(cid):
             print(3)
             input()
     return
+
+def create_new_session(cid,sessionID,starttime):
+    global connection, cursor
+    if sessionID!='':
+        print('exist session ID {} will be end all watching movie will be end'.format(sessionID))
+    cursor.execute('SELECT max(sid),count(*) FROM sessions ORDER by sid DESC') # find max id,and count
+    dbreturn=cursor.fetchone()
+    if dbreturn[1]==0:
+        sessionID=1
+    else:
+        sessionID=dbreturn[0]+1
+    starttime=time.time()
+    txt = "insert into sessions values ({}, '{}', '{}', NULL);".format(sessionID,cid,str(datetime.date.today()))
+    cursor.execute(txt)
+    connection.commit()
+    return sessionID,starttime
+
 
 def list_input_menu(print_format,user_input):
     # this list will be present a list of blank space like this:
@@ -327,7 +345,6 @@ def select_menu(info,header):
             selected=True
             break
     return int(selection)-1+header[1]*page
-
 
 
 def register_service_bridge():
