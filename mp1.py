@@ -1,5 +1,6 @@
 from ast import Return
 from distutils.command.clean import clean
+from itertools import count
 import sqlite3
 import time,datetime
 import hashlib
@@ -214,6 +215,7 @@ def customers_menu(cid):
         elif str(userinput) == '0':
             sessionID = create_new_session(cid,sessionID)
         elif str(userinput) == '1':
+            search_movie(cid,sessionID)
             print(1)
             input()
         elif str(userinput) == '2':
@@ -258,12 +260,92 @@ def end_session(sessionID):
     if dbreturn[0]>0:
         input('You have {} not yet end watching,please end all wating before end session.\nPress enter to continue'.format(dbreturn[0]))
         return sessionID
-    # uodate information
+    # update information
     duration=int((time.time()-userdict['session_start'])/60)
     txt2='UPDATE sessions SET duration={} WHERE sid={}'.format(time,sessionID)
     cursor.excute(txt2)
+    connection.commit()
+    input('Session {} ended.\n press enter to continue'.format(sessionID))
     return ''
 
+def search_movie(cid,sessionID):
+    global connection,cursor
+    opt_format=[3,['title','cast member name','member role',],[],'select your movie by keyword:','not all the entry are mandortry']
+    user_input=['','','']
+    selected=False
+    dbreturn=[]
+    while not selected:
+        user_input,selection = list_input_menu(opt_format,user_input)
+        if selection=='b':
+            return
+        # data error check here
+        for i in range(len(user_input)):
+            if user_input[i]!='':
+                break
+            elif i == len(user_input)-1:
+                input('at least one have to type it\n enter to continue')
+                continue
+        print(user_input)
+        count_sel=0
+        un_txt= '''union all '''
+        txt1= '''select movies.mid,movies.title,movies.year,movies.runtime 
+                from movies
+                inner join ('''
+        txt_con=['''SELECT movies.mid 
+                FROM movies
+                WHERE title like "%{}%" '''
+                ,'''SELECT casts.mid 
+                FROM moviePeople,casts
+                WHERE moviePeople.pid=casts.pid
+                and moviePeople.name like "%{}%" '''
+                ,   '''SELECT casts.mid 
+                from casts
+                WHERE role like "%{}%" ''']
+        txt5=''') matchmov on movies.mid=matchmov.mid
+                group by movies.mid
+                ORDER by count(*) DESC'''.format(user_input[0],user_input[1],user_input[2])
+        for i in range(len(user_input)):
+            if count_sel>=1 and user_input[i]!='':
+                txt1=txt1+un_txt
+            if user_input[i]!='':
+                txt1=txt1+txt_con[i].format(user_input[i])
+                count_sel+=1
+        txt1=txt1+txt5
+        print(txt1)
+        cursor.execute(txt1)
+        dbreturn.append(cursor.fetchone())
+        if dbreturn[0] == None:
+            input("no result match return to input menu\n press enter to continue")
+        else:
+            selected=True
+    selected=False
+    while dbreturn[-1]!=None:
+        dbreturn.append(cursor.fetchone())
+    o2=cursor.description
+    col_til=[]
+    for i in range(len(o2)):
+        col_til.append(o2[i][0])
+    print(col_til)
+    dbreturn.pop()
+    print(dbreturn)
+    selected=False
+    header=[len(dbreturn),5,col_til,True,'selected your movie','']
+    userinput=''
+    while not selected and str(userinput).lower()!='b':
+        user_input=select_menu(dbreturn,header)
+        if str(user_input).lower()=='b':
+            return
+        if sessionID=='':
+            input('sorry we did not find your session, you will be send back to main menu.\n press enter to continue.')
+            return
+        print(dbreturn[user_input])
+        watch_movie_service(cid,sessionID,dbreturn[user_input][0])
+        
+
+    return
+    
+def watch_movie_service(cid,sessionID,mid):
+    return
 
 def list_input_menu(print_format,user_input):
     # this list will be present a list of blank space like this:
@@ -285,6 +367,7 @@ def list_input_menu(print_format,user_input):
                 print('{}: {:<15}    {}'.format(i+1,print_format[1][i],user_input[i]))
             else:
                 print('{}: {:<15}    {}'.format(i+1,print_format[1][i],'*****'))
+        print(print_format[-1])
         print('B: go back\nS: submit\n')
         # user promote their input and input check
         selection=input('your selection> ')
@@ -303,7 +386,7 @@ def list_input_menu(print_format,user_input):
         elif selection.lower() not in ['b','s']:
             print('invalid selection, enter to continue')
             input()
-    return user_input,selection                    
+    return user_input,selection.lower()                    
 
 def select_menu(info,header):
     # header=[len(info),3,['name','age','pp'],False,txt1,txt2]
@@ -328,8 +411,8 @@ def select_menu(info,header):
         # header printing requested
         if header[3]:
             txt='#   '
-            for i in range(header[1]):
-                txt+='{:<8} '.format(header[2][i])
+            for i in range(len(info[0])):
+                txt+='{:<25} '.format(header[2][i])
             print(txt)
         start=page*header[1]
         end= (page+1)*header[1]
@@ -339,7 +422,10 @@ def select_menu(info,header):
         for y in range(start,end,1):
             txt='{:<3} '.format(y-page*header[1]+1)
             for x in range(len(info[0])):
-                txt+='{:<8} '.format(info[y][x])
+                if len(str(info[y][x]))<=25:
+                    txt+='{:<25} '.format(info[y][x])
+                else:
+                    txt+='{:<23}.. '.format(info[y][x][:23])
             print(txt)
         # printing number of option key allow
         if max_page!=0:
@@ -426,7 +512,7 @@ def main():
     if len(sys.argv)==1:
         define_tables()
         insert_data()
-    info=[['exising customer and editor log in'],['register']]
+    info=[['log in'],['register']]
     txt1='Welcome screen\nconnected to database {}'.format(path)
     header=[len(info),0,[],False,txt1,'']
     welcome=''
