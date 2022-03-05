@@ -9,7 +9,7 @@ import os,sys
 
 connection = None
 cursor = None
-
+userdict={}
 
 def connect(path):
     global connection, cursor
@@ -199,7 +199,7 @@ def customers_menu(cid):
     info=[['Start a session'],['Search for movie'],['end watching a movie'],['end the session']]
     header=[len(info),0,[],False,txt1,txt2]
     userinput=''
-    starttime=time.time()
+    userdict.clear()  # clean the dictionary
 
     while str(userinput).lower()!='b':
         os.system('clean')
@@ -212,7 +212,7 @@ def customers_menu(cid):
         if str(userinput) not in ['0','1','2','3','b']:
             print("Please follow instruction! \n ")
         elif str(userinput) == '0':
-            sessionID,starttime = create_new_session(cid,sessionID,starttime)
+            sessionID = create_new_session(cid,sessionID)
         elif str(userinput) == '1':
             print(1)
             input()
@@ -220,25 +220,49 @@ def customers_menu(cid):
             print(2)
             input()
         elif str(userinput) == '3':
+            sessionID=end_session(sessionID)
+            if sessionID=='':
+                userdict.clear()
+            # if returning sessionID it means session still have something unable to end it yet
             print(3)
             input()
     return
 
-def create_new_session(cid,sessionID,starttime):
-    global connection, cursor
-    if sessionID!='':
-        print('exist session ID {} will be end all watching movie will be end'.format(sessionID))
+def create_new_session(cid,sessionID):
+    global connection, cursor,userdict
+    if sessionID=='':
+        input('no session ID found.\n press enter to continue'.format(sessionID))
+        return sessionID
     cursor.execute('SELECT max(sid),count(*) FROM sessions ORDER by sid DESC') # find max id,and count
     dbreturn=cursor.fetchone()
     if dbreturn[1]==0:
         sessionID=1
     else:
         sessionID=dbreturn[0]+1
-    starttime=time.time()
+    userdict['session_start']=time.time()
     txt = "insert into sessions values ({}, '{}', '{}', NULL);".format(sessionID,cid,str(datetime.date.today()))
     cursor.execute(txt)
     connection.commit()
-    return sessionID,starttime
+    return sessionID
+
+def end_session(sessionID):
+    if sessionID=='':
+        input('no current session,enter to back to the last menu')
+    # check if any movie not end
+    txt = '''SELECT count(*) FROM sessions,watch
+             WHERE sessions.sid=watch.sid 
+             and watch.duration is NULL
+             and watch.sid={}'''.format(sessionID)
+    cursor.excute(txt)
+    dbreturn=cursor.fetchone()
+    if dbreturn[0]>0:
+        input('You have {} not yet end watching,please end all wating before end session.\nPress enter to continue'.format(dbreturn[0]))
+        return sessionID
+    # uodate information
+    duration=int((time.time()-userdict['session_start'])/60)
+    txt2='UPDATE sessions SET duration={} WHERE sid={}'.format(time,sessionID)
+    cursor.excute(txt2)
+    return ''
 
 
 def list_input_menu(print_format,user_input):
