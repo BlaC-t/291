@@ -1,4 +1,4 @@
-from ast import Return
+from ast import DictComp, Return
 from distutils.command.clean import clean
 from itertools import count
 import sqlite3
@@ -316,6 +316,7 @@ def search_movie(cid,sessionID):
         dbreturn.append(cursor.fetchone())
         if dbreturn[0] == None:
             input("no result match return to input menu\n press enter to continue")
+            continue
         else:
             selected=True
     selected=False
@@ -335,17 +336,90 @@ def search_movie(cid,sessionID):
         user_input=select_menu(dbreturn,header)
         if str(user_input).lower()=='b':
             return
-        if sessionID=='':
-            input('sorry we did not find your session, you will be send back to main menu.\n press enter to continue.')
-            return
         print(dbreturn[user_input])
         watch_movie_service(cid,sessionID,dbreturn[user_input][0])
-        
-
     return
     
 def watch_movie_service(cid,sessionID,mid):
+    global cursor,connection,userdict
+    done=False
+    cursor.execute('''SELECT * FROM movies WHERE mid={}'''.format(mid))
+    movied=cursor.fetchone()
+    print('op1')
+    txt1='Title:    {}\nmid:      {}\nPublish at {}\nLength:   {}\n'.format(movied[1],movied[0],movied[2],movied[3])
+    extxt=txt1
+    txt1=txt1+'-'*30+'\n'
+    txt1=txt1+"{:<25} {:<25} {:<8}".format('real name','role','birthYear')+'\n'
+    cursor.execute('''SELECT moviePeople.name,casts.role,moviePeople.birthYear 
+                        FROM casts inner join moviePeople 
+                        on moviePeople.pid=casts.pid WHERE mid={}'''.format(mid))
+    print('op2')
+    peodt=''
+    while peodt != None:
+        peodt=cursor.fetchone()
+        if peodt != None:
+            txt2="{:<25} {:<25} {:<8}\n".format(peodt[0],peodt[1],peodt[2])
+            txt1=txt1+txt2
+    txt1=txt1+'-'*30+'\n'
+    print('op3')
+    cursor.execute('''SELECT count(DISTINCT cid) 
+                      FROM watch,movies WHERE movies.mid=watch.mid 
+                      AND watch.mid={} AND (movies.runtime/2)<=watch.duration'''.format(mid))
+    cusdt=cursor.fetchone()
+    print('op4')
+    if cusdt==None:
+        txt1=txt1+'0 Customer watched this movie\n'
+    else:
+        txt1=txt1+'{} Customer watched this movie\n'.format(cusdt[0])
+    txt1=txt1+'-'*30+'\n'
+    print('op5')
+    info=[['follow a cast'],['start watching']]
+    header=[len(info),0,[],False,txt1,'']
+    inputsel=''
+    while str(inputsel).lower()!='b':
+        inputsel=select_menu(info,header)
+        if inputsel==0:
+            follow_moviepeople_service(extxt,cid,mid)
+        elif sessionID=='' and inputsel==1:
+            input('sorry we did not find your session, you will be send back to main menu.\n press enter to continue.')
+        else:
+            input()
     return
+
+def follow_moviepeople_service(extxt,cid,mid):
+    global connection, cursor
+    done=False
+    extxt='Select the movie People you want to follow:\n'+extxt
+    cursor.execute('''SELECT moviePeople.pid,moviePeople.name,casts.role,moviePeople.birthYear 
+                      FROM casts inner join moviePeople 
+                      on moviePeople.pid=casts.pid WHERE mid={}'''.format(mid))
+    print('op2')
+    peodt=[cursor.fetchone()]
+    while peodt[-1] != None:
+        peodt.append(cursor.fetchone())
+    o2=cursor.description
+    col_til=[]
+    for i in range(len(o2)):
+        col_til.append(o2[i][0])
+    peodt.pop()# last one always empty
+    header=[len(peodt),5,col_til,True,extxt,'']
+    userinput=''
+    while str(userinput).lower()!='b':
+        user_input=select_menu(peodt,header)
+        if str(user_input).lower()=='b':
+            return
+        else:
+            cursor.execute('''SELECT * FROM follows WHERE cid='{}' and pid='{}' '''.format(cid,peodt[user_input][0]))
+            res=cursor.fetchone()
+            if res!=None:
+                input("Sorry, you alreadr follow{}.\npress enter to exit.".format(peodt[user_input][1]))
+            else:
+                txt = "insert into follows values ('{}', '{}');".format(cid,peodt[user_input][0])
+                cursor.execute(txt)
+                connection.commit()
+                input("you are now alreadr follow{}.\npress enter to exit.".format(peodt[user_input][1]))
+
+
 
 def list_input_menu(print_format,user_input):
     # this list will be present a list of blank space like this:
@@ -525,6 +599,7 @@ def main():
             login_screen()
         elif welcome == 1:
             register_service_bridge()
+    connection.close()
 
 if __name__ == "__main__":
     main()
