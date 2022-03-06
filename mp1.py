@@ -497,47 +497,85 @@ def end_watch(cid,sessionID):
     return
 
 def list_input_menu(print_format,user_input):
-    # this list will be present a list of blank space like this:
-    # user name:
-    # password:(hide if serveic bridge requested)
-    # number of argument areallow to be set
-    # argv1=[num input,[nmae of input],[hideen password],msg1(before list),msg2]
-    # argv2=[previously input]
+    # dissription:
+    # This function intented to allow user input their information, User are able to input the blank they want.
+    # However this function only do gerenal check,They input will return and the orginal function will fetch information and connect
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1=[num input,[name of input],[entry that need to be hideen],msg1(before list),msg2(after text)]
+    # argv2=[previously input] this allow system compare the infomation and still able to change from the last answer
+    # ----------------------------------------------------------------
+    # example of entry
+    # argv1(print_format)=[2,['user name: ', 'password:'],['password'],'log in','']
+    # argv2(user input)=['c100','password']
+    # user login:
+    # --------------------
+    #1: user name    c100
+    #2: password    ******
+
+    #B: go back
+    #S: submit
+    # ----------------------------------------------------------------
+    # return arguments
+    # argv1: same as input argv in input
+    # argv: selection, it lets the caller know if user promote back
+
+    # when user promote select (B)back or (S)select it means user finish their input and ready to exit
     selection =''
     # while use did not quite or submit
     while selection.lower() not in ['b','s']:
         # header printing
-        os.system('clear')
+        os.system('clear') #screen clear
         print(print_format[3])
         print('-'*20)
         # each line completed information printing
+        # this information are from print_format 2
         for i in range(print_format[0]):
             if (print_format[1][i] not in print_format[2]) or user_input[i]=='':
-                print('{}: {:<15}    {}'.format(i+1,print_format[1][i],user_input[i]))
+                print('{}: {:<15}    {}'.format(i+1,print_format[1][i],user_input[i]))  #regular information showing
             else:
-                print('{}: {:<15}    {}'.format(i+1,print_format[1][i],'*****'))
+                print('{}: {:<15}    {}'.format(i+1,print_format[1][i],'*****'))   # hidden password
+        # after inforation printing
         print(print_format[-1])
+        # instruction printing
         print('B: go back\nS: submit\n')
         # user promote their input and input check
         selection=input('your selection> ')
+        # user who select numbers to input will be transfer here
         if selection>='0' and selection<='9':
             # number validation
+            # this case will appear when user select something that outof range
+            # to avoid index errors
             if int(selection)>print_format[0] or (int(selection)<=0):
                 print('invalid selection, enter to continue')
                 input()
             # if password hidden
             else:
                 selection=str(int(selection)-1)
-                if print_format[1][int(selection)] not in print_format[2]:
-                    user_input[int(selection)]=input('{}: '.format(print_format[1][int(selection)]))
-                else:
-                    user_input[int(selection)]=getpass.getpass('{}: '.format(print_format[1][int(selection)]))
+                if print_format[1][int(selection)] not in print_format[2]:  # if no hidden needed go here
+                    temp_input=input('{}: '.format(print_format[1][int(selection)]))
+                else:   # if hidden needed go here
+                    temp_input=getpass.getpass('{}: '.format(print_format[1][int(selection)]))
+                # data validation need here
+                # only 0-9.'a'-'z','A'-'Z' allowed
+                allow_input=list(range(ord('0'),ord('9'),1))+list(range(ord('A'),ord('Z'),1))+list(range(ord('a'),ord('z'),1))
+                flag_input=False
+                for i in range(len(temp_input)):
+                    if ord(temp_input[i]) not in allow_input:
+                        input('Please input 0-9,A-Z,a-z\n enter to continue')
+                        flag_input=True
+                        break
+                if not flag_input:
+                    user_input[int(selection)]=temp_input
+        # if user promote things that system unexpected,tell user to reenter
         elif selection.lower() not in ['b','s']:
             print('invalid selection, enter to continue')
             input()
+    # return data
     return user_input,selection.lower()                    
 
 def select_menu(info,header):
+    # info (dim-3) tuple from database/selection
     # header=[len(info),3,['name','age','pp'],False,txt1,txt2]
             # total line #title each col    #show col(T/F)
                       # showing each page         #(BF) (AF)
