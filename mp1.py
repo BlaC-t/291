@@ -518,7 +518,7 @@ def list_input_menu(print_format,user_input):
     # ----------------------------------------------------------------
     # return arguments
     # argv1: same as input argv in input
-    # argv: selection, it lets the caller know if user promote back
+    # argv2: selection, it lets the caller know if user promote back
 
     # when user promote select (B)back or (S)select it means user finish their input and ready to exit
     selection =''
@@ -575,60 +575,119 @@ def list_input_menu(print_format,user_input):
     return user_input,selection.lower()                    
 
 def select_menu(info,header):
-    # info (dim-3) tuple from database/selection
-    # header=[len(info),3,['name','age','pp'],False,txt1,txt2]
-            # total line #title each col    #show col(T/F)
-                      # showing each page         #(BF) (AF)
+    # dissription:
+    # This function intented to given 1 to many 2D graph to select
+    # it allow user select different function page from
+    # It also allow user to given multi page of information in this list as well
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1=3D array of display information ex.  [[cid,pid],.......m[cid,pid]]
+    # argv2=[len(info),3,['name','age','pp'],False,txt1,txt2]
+    #   argv explanation::
+    #   argv2[0]:number of total inforation
+    #   argv2[1]:number of inforamation per page,0 to len(info)
+    #           0->show all
+    #           <int> more than argv[0] will be fix to len(info)
+    #   argv2[3]: T/F show the name of each column
+    #   argv2[4]: title or pre infomation printing
+    #   argv2[5]: after information printing
+    # ----------------------------------------------------------------
+    # type1 printout   customer main panel
+    # Login in as customer c100
+    # --------------------
+    #1   Start a session
+    #2   Search for movie
+    #3   end watching a movie
+    #4   end the session
+    #no session ID assiged this moment
+
+    #<int> number of option
+    #B back
+
+    #indicate your choice>
+    # ----------------------------------------------------------------
+    # type2 printout   select movie from Morgan Freeman
+    # selected your movie
+    # --------------------
+    #   mid                       title                     year                      runtime  < control by argv2[4]
+    #1   200                       Transcendence             2014                      119
+    #2   190                       Now You See Me            2013                      116
+    #3   180                       The Dark Knight           2008                      152
+    #4   170                       Lucy                      2014                      89
+    #5   40                        Million Dollar Baby       2004                      132
+    #showing 0 - 5 of 7   <----- only show more than one page
+    
+    #L last page        <----- only show more than one page
+    #N next page        <----- only show more than one page
+
+    #<int> number of option
+    #B back
+
+    #indicate your choice>
+    # ----------------------------------------------------------------
+    # return arguments
+    # argv1: 'b' or <int>
+
+    # This are used to main the loop,and allow user to back level in the function
     selected=False
+    # number of current page
     page=0
-    #  present index overflow
+    #  present index overflow change to show all
     if header[1]>header[0] or header[1]==0:
         header[1]=header[0]
-    # calc finding the max page
+    # calc finding the max page avvoiding onver page
     max_page=int(header[0]/header[1])
     if (header[0]%header[1])==0:
         max_page-=1
+    # user selection input 
     selection=''
     # when not selected keeop brwing
     while not selected:
         #header printing
         os.system('clear')
+        # print the text of pretext
         print(header[4])
         print('-'*20)
-        # header printing requested
+        # header printing requested print it out
         if header[3]:
             txt='#   '
             for i in range(len(info[0])):
                 txt+='{:<25} '.format(header[2][i])
             print(txt)
+        # calclate the printing index in the current page
         start=page*header[1]
         end= (page+1)*header[1]
         # sometime last page not full
         if (end>header[0]):
             end = header[0]
+        # printing information from argv1 aka variable info
         for y in range(start,end,1):
-            txt='{:<3} '.format(y-page*header[1]+1)
+            # transfer that number y to order in 1 to current page
+            txt='{:<4} '.format(y-page*header[1]+1)
+            # adding each coulmn
             for x in range(len(info[0])):
                 if len(str(info[y][x]))<=25:
                     txt+='{:<25} '.format(info[y][x])
-                else:
+                else:  # avoid overflow
                     txt+='{:<23}.. '.format(info[y][x][:23])
             print(txt)
         # printing number of option key allow
         if header[-1]!=None:
             print(header[-1])
+        # when page more than one, print flip page instruction
         if max_page!=0:
             print('\nshowing {} - {} of {}'.format(start,end,header[0]))
             print('''\nL last page\nN next page''')
+        # everycondition need to pront condition
         print('''\n<int> number of option\nB back\n''')
-        # get the user input
+        # get the user input and allow go to lower case(if appicable)
         selection=input('indicate your choice> ').lower()
-        # exit ,flip page
-        if selection == 'b':
+        #analysis user input
+        if selection == 'b':  # exit
             return selection
-        elif selection == 'n' and page<max_page:
+        elif selection == 'n' and page<max_page: # next pg
             page+=1
-        elif selection =='l' and page>=1:
+        elif selection =='l' and page>=1: # last pg
             page-=1
         else: # number validation
             try:
@@ -638,11 +697,12 @@ def select_menu(info,header):
                 elif int(selection)-1>=header[1]:
                     input("invalid input\nenter to continue")
                     continue
-            except:
+            except: # all other wired staff go here
                 input("invalid input\nenter to continue")
                 continue
             selected=True
-            break
+    # tranform back to user index
+    # selection == 'b' return b,another will all return interger index
     return int(selection)-1+header[1]*page
 
 
