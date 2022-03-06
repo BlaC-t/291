@@ -467,19 +467,23 @@ def end_watch(cid,sessionID):
                       FROM watch,movies
                       WHERE  movies.mid=watch.mid
                       and cid='{}' and sid={} and watch.mid is NULL'''.format(cid,sessionID))
+    # start getching list of unwatch movie
     dbreturn=[cursor.fetchone()]
     if dbreturn[0] is None:
         input('no watch found\n press enter to continue')
         return
+    # fetch multi line info
     while dbreturn[-1] is not None:
         dbreturn.append(cursor.fetchone())
     dbreturn.pop()
     o2=cursor.information
+    # get tittle (orginally dim(3) array)
     title=[]
     for i in range(len(o2)):
         title.append(o2[i][0])
     header=[len(dbreturn),5,title,False,'select the, movie that you want to watch','']
     re=select_menu(dbreturn,header)
+    # if respo
     if str(re).lower()=='b':
         return
     duration=int ((time.time() - userdict[dbreturn[re][0]])/60)
@@ -649,7 +653,6 @@ def register_service_bridge():
 def main():
     global connection, cursor
     # clean the screen
-    os.system('clear')
     #print(sys.argv)
     if len(sys.argv)==1:
         path = "./mp1.db"
