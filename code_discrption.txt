@@ -1,0 +1,46 @@
+The file README.txt is a text file that lists the names and ccids of all 
+group members. This file must also include the names of anyone you 
+collaborated with (as much as it is allowed within the course policy) 
+or a line saying that you did not collaborate with anyone else. 
+This is also the place to acknowledge the use of any source of information 
+besides the course textbook and/or class notes.
+
+Your design document must be type-written and is saved as a PDF and be 
+included in your submission. Your design document cannot exceed 4 pages.
+
+The design document should include 
+(a) a general overview of your system with a small user guide, 
+
+
+(b) a detailed design of your software with a focus on the components 
+required to deliver the major functions of your application,
+
+
+(c) your testing strategy, 
+
+
+
+and (d) your group work break-down strategy. 
+ The general overview of the system gives a high level introduction and may 
+ include a diagram showing the flow of data between different components; 
+ this can be useful for both users and developers of your application. 
+ The detailed design of your software should describe the responsibility 
+ and interface of each primary function or class (not secondary utility 
+ functions/classes) and the structure and relationships among them. 
+ Depending on the programming language being used, you may have methods,
+  functions or classes. The testing strategy discusses your general 
+  strategy for testing, with the scenarios being tested, the coverage 
+  of your test cases and (if applicable) some statistics on the number 
+  of bugs found and the nature of those bugs. The group work strategy 
+  must list the break-down of the work items among partners, both the 
+  time spent (an estimate) and the progress made by each partner, and 
+  your method of coordination to keep the project on track. The design 
+  document should also include a documentation of any decision you have 
+  made which is not in the project specification or any coding you have 
+  done beyond or different from what is required.
+
+Your design document will not include the source code. However your 
+source code will be inspected for source code quality (whether the 
+code is easy to read and if data processing is all done in SQL and 
+not in the application) and self-documentation (whether the code is 
+properly commented).

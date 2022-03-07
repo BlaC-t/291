@@ -1,9 +1,5 @@
-from ast import DictComp, Return
-from distutils.command.clean import clean
-from itertools import count
 import sqlite3
 import time, datetime
-import hashlib
 import getpass
 import os, sys
 
