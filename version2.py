@@ -1,5 +1,9 @@
+from ast import DictComp, Return
+from distutils.command.clean import clean
+from itertools import count
 import sqlite3
 import time, datetime
+import hashlib
 import getpass
 import os, sys
 
@@ -198,29 +202,31 @@ def editors_menu(eid):
         os.system('cls')
 
         userinput = select_menu(info, header)
-        if str(userinput) not in ['0', '1', 'b']:
+        if str(userinput) not in ['0', '1', 'b', 's']:
             print("Please follow instruction! \n ")
         elif str(userinput) == '0':
             add_movie()
+            insert_caster()
         elif str(userinput) == '1':
             report()
 
     return
 
 
-def add_movie():
+def add_movie(): # 如果input的输入格式不对 怎么解决
     global connection, cursor
     os.system('cls')
 
     opt_format = [4, ['mid', 'Title', 'Year', 'Runtime'], [], 'Select what do you want to input: ', 'All entry are mandory!']
     user_input = ['', '', '', '']
+    num = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
     dbreturn = []
     unadded = False
 
     while not unadded:
         user_input, selection = list_input_menu(opt_format, user_input)
 
-        if str(user_input) not in ['0', '1', '2', '3' 'b']:
+        if str(user_input).lower not in ['0', '1', '2', '3', 'b', 's']:
             print("Please follow instruction! \n ")
 
         if selection == 'b':
@@ -241,19 +247,20 @@ def add_movie():
                     '''
         cursor.execute(not_in, {"new_mid": user_input[0], "new_year": user_input[2], "new_time": user_input[3]})
 
-        if not_in > 0:
+        not_inc = cursor.fetchone()
+        print(not_inc[0])
+
+        if int(not_inc[0]) > 0:
             input("The movie already exits!\n Press enter to continue")
             continue
         else:
             unadded = True
 
-    insert = '''INSERT INTO movie(mid, title, year, runtime) VALUE(?,?,?,?)'''
-    cursor.execute(insert, user_input)
-    txt = cursor.fectone()
-    # print(txt)
-
-
-    input()
+    insert = '''INSERT INTO movies (mid, title, year, runtime) VALUES (?,?,?,?);'''
+    form = (user_input[0], user_input[1], user_input[2], user_input[3])
+    cursor.execute(insert, form)
+    txt = cursor.fetchone()
+    print(txt)
 
 
 def insert_caster():
@@ -276,11 +283,12 @@ def insert_caster():
         find_caster = '''
                         SELECT count(*)
                         FROM moviePeople mp
-                        WHERE mp.pid = {}
+                        WHERE mp.pid = :entered
                         '''
-        not_same = cursor.execute(find_caster).format(user_input[0])
+        cursor.execute(find_caster, {"entered" : user_input[1]})
+        not_same = cursor.fetchone()
 
-        if not_same == 0:
+        if int(not_same) == 0:
             input("There is no movie people with pid: {} \nPlease create a profile for new movie people \nPress enter to continue").format(user_input)
             continue
         else:
@@ -309,7 +317,7 @@ def new_mp():
     while not unadded:
         user_input, selection = list_input_menu(opt_format, user_input)
 
-        if str(user_input) not in ['0', '1', '2', '3' 'b']:
+        if str(user_input) not in ['0', '1', '2', '3', 'b', 's']:
             print("Please follow instruction! \n ")
 
         if selection == 'b':
@@ -326,9 +334,11 @@ def new_mp():
                            FROM moviePeople mp
                            WHERE mp.pid = {} 
                             '''
-        exists = cursor.execute(exists_caster).format(user_input[0])
+        cursor.execute(exists_caster).format(user_input[0])
 
-        if exists > 0:
+        exists = cursor.fetchone()
+
+        if int(exists) > 0:
             input("The caster already exists! \nPress enter to continue")
             continue
         else:
