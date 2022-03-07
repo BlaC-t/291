@@ -1,6 +1,3 @@
-from ast import DictComp, Return
-from distutils.command.clean import clean
-from itertools import count
 import sqlite3
 import time,datetime
 import hashlib
@@ -13,13 +10,20 @@ cursor = None
 userdict={}
 
 def connect(path):
+    # dissription:
+    # connect to the database, and read data
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(path) = database path
+    # ----------------------------------------------------------------
+    # return arguments
+    # None
+    # ----------------------------------------------------------------
     global connection, cursor
-
     connection = sqlite3.connect(path)
     cursor = connection.cursor()
     cursor.execute(' PRAGMA foreign_key=ON; ')
     connection.commit()
-
     return
 
 
@@ -153,6 +157,13 @@ def insert_data():
 
 
 def login_screen():
+    # dissription:
+    # login information validation
+    # ----------------------------------------------------------------
+    # arguments: None
+    # ----------------------------------------------------------------
+    # return arguments None
+    # ----------------------------------------------------------------
     global connection, cursor
     # set up user input screen
     opt_format=[2,['id_name','password',],['password'],'user login:','']
@@ -183,9 +194,9 @@ def login_screen():
         else:
             login_sucess=True
     # real person validaed 
-    if 'c' in user_input[0]:
+    if 'c' in user_input[0]: # cus panel
         customers_menu(user_input[0])
-    elif 'e' in user_input[0]:
+    elif 'e' in user_input[0]: # editor panel
         editors_menu(user_input[0])
     return
 
@@ -197,6 +208,14 @@ def editors_menu(eid):
 
 
 def customers_menu(cid):
+    # dissription:
+    # main customer menu
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(cid) = customer ID
+    # ----------------------------------------------------------------
+    # return arguments None
+    # ----------------------------------------------------------------
     sessionID=''
     # header line format printout
     txt1="Login in as customer {}".format(cid)
@@ -207,10 +226,10 @@ def customers_menu(cid):
     userdict.clear()  # clean the dictionary
     while str(userinput).lower()!='b':
         os.system('clean')
-        if sessionID == '':
-            txt2="no session ID assiged this moment"
+        if sessionID == '':  #tell the user if session ID assgied
+            txt2="no session ID assiged this moment\n"
         else:
-            txt2="Current session ID is:{}.".format(sessionID)
+            txt2="Current session ID is:{}.\n".format(sessionID)
         header[-1]=txt2
         # print to get get the user response
         userinput=select_menu(info,header)
@@ -234,6 +253,16 @@ def customers_menu(cid):
     return
 
 def create_new_session(cid,sessionID):
+    # dissription:
+    # start a new session ID
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(cid) = customer ID
+    # argv2(sessionID) = scurrent session ID
+    # ----------------------------------------------------------------
+    # return arguments
+    # argv1: sessionID
+    # ----------------------------------------------------------------
     global connection, cursor,userdict
     # if a new session exist,let user end watching all the movie
     if sessionID!='':
@@ -257,7 +286,18 @@ def create_new_session(cid,sessionID):
     return sessionID
 
 def end_session(sessionID):
+    # dissription:
+    # end sessionID
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(cid) = customer ID
+    # argv2(sessionID) = scurrent session ID
+    # ----------------------------------------------------------------
+    # return arguments
+    # argv1: '' means end sucessfully
+    # ----------------------------------------------------------------
     global connection, cursor,userdict
+    # no session ID, means no session started
     if sessionID=='':
         input('no current session,enter to back to the last menu')
     # check if any movie not end
@@ -265,8 +305,9 @@ def end_session(sessionID):
              WHERE sessions.sid=watch.sid 
              and watch.duration is NULL
              and watch.sid={}'''.format(sessionID)
+    # fetch information
     dbreturn,tille=fetch_info(txt)
-    if dbreturn[0][0]>0: # count always return a number so no none deact here
+    if dbreturn[0][0]>0: # count always return a number so no none detact here
         input('You have {} not yet end watching,please end all wating before end session.\nPress enter to continue'.format(dbreturn[0]))
         return sessionID
     # update information
@@ -274,10 +315,20 @@ def end_session(sessionID):
     txt2='UPDATE sessions SET duration={} WHERE sid={}'.format(duration,sessionID)
     cursor.execute(txt2)
     connection.commit()
+    # tell user process done
     input('Session {} ended.\n press enter to continue'.format(sessionID))
     return ''
 
 def search_movie(cid,sessionID):
+    # dissription:
+    # search movie by provided filter
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(cid) = customer ID
+    # argv2(sessionID) = scurrent session ID
+    # ----------------------------------------------------------------
+    # return arguments None
+    # ----------------------------------------------------------------
     global connection,cursor
     # here is the pg1, let the user decide what keyword they should keyin(at least one)
     opt_format=[3,['title','cast member name','member role',],[],'select your movie by keyword:','not all the entry are mandortry']
@@ -292,7 +343,7 @@ def search_movie(cid,sessionID):
         for i in range(len(user_input)):
             if user_input[i]!='':
                 break
-            elif i == len(user_input)-1:
+            elif i == len(user_input)-1: # need to have at least one entry
                 input('at least one have to type it\n enter to continue')
                 continue
         # here is ateset code remember to delete the code
@@ -319,9 +370,9 @@ def search_movie(cid,sessionID):
                 ORDER by count(*) DESC'''
         # detection and bind them in to one sql query
         for i in range(len(user_input)):
-            if count_sel>=1 and user_input[i]!='':
+            if count_sel>=1 and user_input[i]!='': # add unionall link
                 txt1=txt1+un_txt
-            if user_input[i]!='':
+            if user_input[i]!='':  # add the select fitter
                 txt1=txt1+txt_con[i].format(user_input[i])
                 count_sel+=1
         # add the sort into the line as well
@@ -349,6 +400,16 @@ def search_movie(cid,sessionID):
     return
     
 def watch_movie_service(cid,sessionID,mid):
+    # dissription:
+    # search all unfinish movie and let user decide to finish which one
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(cid) = customer ID
+    # argv2(sessionID) = scurrent session ID
+    # argv3(mid) = movie ID
+    # ----------------------------------------------------------------
+    # return arguments None
+    # ----------------------------------------------------------------
     global cursor,connection,userdict
     # print the movie information to the screen
     movied,title=fetch_info('''SELECT * FROM movies WHERE mid={}'''.format(mid))
@@ -379,54 +440,92 @@ def watch_movie_service(cid,sessionID,mid):
     # in loop selection
     while str(inputsel).lower()!='b':
         inputsel=select_menu(info,header)
-        if inputsel==0:
+        if inputsel==0: # jump to follow moviepeople
             follow_moviepeople_service(extxt,cid,mid)
         elif sessionID=='' and inputsel==1: # want to start watch but no session ID
             input('sorry we did not find your session\n press enter to continue.')
-        elif inputsel==1:
-            start_watch(cid,sessionID,mid)
+        elif inputsel==1: # wjump to start watch validation
+            stat=start_watch(cid,sessionID,mid)
+            if stat:
+                inputsel='b'
     return
 
 def follow_moviepeople_service(extxt,cid,mid):
+    # dissription:
+    # select to follow one or more movie people
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(extent) = infomation of movie information
+    # argv1(cid) = customer ID
+    # argv2(mid) = movie id
+    # ----------------------------------------------------------------
+    # return arguments None
+    # ----------------------------------------------------------------
     global connection, cursor
     # print out the
     extxt='Select the movie People you want to follow:\n'+extxt
     dbreturn,title=fetch_info('''SELECT moviePeople.pid,moviePeople.name,casts.role,moviePeople.birthYear 
-                      FROM casts inner join moviePeople 
-                      on moviePeople.pid=casts.pid WHERE mid={}'''.format(mid))
+                                 FROM casts inner join moviePeople 
+                                 on moviePeople.pid=casts.pid WHERE mid={}'''.format(mid))
     header=[len(dbreturn),5,title,True,extxt,'']
     userinput=''
     while str(userinput).lower()!='b':
+        # display caster name
         user_input=select_menu(dbreturn,header)
         if str(user_input).lower()=='b':
             return
         else:
+            # when user selected,connect database to see if existing record exist
             cursor.execute('''SELECT * FROM follows WHERE cid='{}' and pid='{}' '''.format(cid,dbreturn[user_input][0]))
             res=cursor.fetchone()
             if res!=None:
                 input("Sorry, you alreadr follow{}.\npress enter to exit.".format(dbreturn[user_input][1]))
             else:
+                # add new record into database
                 txt = "insert into follows values ('{}', '{}');".format(cid,dbreturn[user_input][0])
                 cursor.execute(txt)
                 connection.commit()
                 input("you are now  following {}.\npress enter to exit.".format(dbreturn[user_input][1]))
 
 def start_watch(cid,sessionID,mid):
+    # dissription:
+    # update the table of new wating record
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(cid) = customer ID
+    # argv2(sessionID) = current session ID
+    # argv4(mID)= movie ID
+    # ----------------------------------------------------------------
+    # return arguments None
+    # ----------------------------------------------------------------
     global connection, cursor,userdict
+    # find out if the movie already watched in this selection
     cursor.execute('''SELECT * FROM watch where cid='{}' and mid={} and sid={}'''.format(cid,mid,sessionID))
     dbreturn=cursor.fetchone()
     # it means the movie already started or finshed watching in this session
     if dbreturn is not None:
         input('you are already watching or finshed this movie in this session\n press enter to gp back')
-        return
+        return False
     # else start register
     cursor.execute( "insert into watch values ({}, '{}',{},{});".format(sessionID,cid,mid,'NULL'))
+    # record start time in the dictionary
     userdict[mid]=time.time()
     connection.commit()
-    input('your movie start watching now!')
-    return
+    input('your movie start watching now!\n')
+    return True
 
 def end_watch(cid,sessionID):
+    # dissription:
+    # search all unfinish movie and let user decide to finish which one
+    # ----------------------------------------------------------------
+    # arguments:
+    # argv1(cid) = customer ID
+    # argv2(sessionID) = scurrent session ID
+    # ----------------------------------------------------------------
+    # return arguments
+    # argv1: mathch information from database
+    # argv2: table tittle
+    # ----------------------------------------------------------------
     global connection, cursor,userdict
     # searcg for related sid,but no duration record
     if sessionID=='':
@@ -441,19 +540,23 @@ def end_watch(cid,sessionID):
     if len(dbreturn) == 0:
         input('no watch found\n press enter to continue')
         return
+    # set up 2D select format
     header=[len(dbreturn),5,title,False,'select the, movie that you want to watch','']
     re=select_menu(dbreturn,header)
-    # if respo
+    # if user decide to exit,back to main menu
     if str(re).lower()=='b':
         return
+    # update the new duration to the movies table
     duration=int ((time.time() - userdict[dbreturn[re][0]])/60)
     cursor.execute('''UPDATE watch SET duration={} 
                       WHERE cid='{}' and mid={} and sid={} '''.format(duration,cid,dbreturn[re][0],sessionID))
     connection.commit()
+    # del the key error
     try:
         del userdict[dbreturn[re][0]]
     except KeyError:
         pass
+    # tell the user process complete
     input('movie {} end watching.enter to exit'.format(dbreturn[re][1]))
     return
 
@@ -472,9 +575,11 @@ def fetch_info(run_txt):
     # text not empty
     if run_txt==None or run_txt=='':
         return None,None
+    # get the table
     cursor.execute(run_txt)
-    # get all related movie
+    # fetch the table
     data_base_return = cursor.fetchall()
+    # load the title
     title_return=cursor.description
     # tittle fetching
     adj_tittle=[]
@@ -695,6 +800,12 @@ def select_menu(info,header):
 
 
 def register_service_bridge():
+    # dissription: register a new user
+    # ----------------------------------------------------------------
+    # arguments: None
+    # ----------------------------------------------------------------
+    # return arguments None
+    # ----------------------------------------------------------------
     global connection,cursor
     # set up register
     opt_format=[3,['id_name','user name','password',],['password'],'new user register:','']
@@ -704,8 +815,10 @@ def register_service_bridge():
         # request information
         missed=False
         user_input,selection=list_input_menu(opt_format,user_input)
+        # user decide to exit the current screen
         if selection=='b':
             return
+        # check if it is empty
         for i in range(len(user_input)):
            if user_input[i]=='':
                missed=True
