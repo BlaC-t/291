@@ -429,24 +429,15 @@ def end_watch(cid,sessionID):
     if sessionID=='':
         input('session ID not found\n press enter to continue')
         return
-    cursor.execute('''SELECT watch.mid,movies.title,movies.year 
+    # get information of watching movie
+    dbreturn,title=fetch_info('''SELECT watch.mid,movies.title,movies.year 
                       FROM watch,movies
                       WHERE  movies.mid=watch.mid
                       and cid='{}' and sid={} and watch.mid is NULL'''.format(cid,sessionID))
     # start getching list of unwatch movie
-    dbreturn=[cursor.fetchone()]
-    if dbreturn[0] is None:
+    if len(dbreturn) == 0:
         input('no watch found\n press enter to continue')
         return
-    # fetch multi line info
-    while dbreturn[-1] is not None:
-        dbreturn.append(cursor.fetchone())
-    dbreturn.pop()
-    o2=cursor.information
-    # get tittle (orginally dim(3) array)
-    title=[]
-    for i in range(len(o2)):
-        title.append(o2[i][0])
     header=[len(dbreturn),5,title,False,'select the, movie that you want to watch','']
     re=select_menu(dbreturn,header)
     # if respo
