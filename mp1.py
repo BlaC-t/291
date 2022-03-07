@@ -11,11 +11,17 @@ class WatchMovie:
         self.connection = None
         self.cursor = None
         self.userdict={}
+        self.allow_input=list(range(ord('0'),ord('9'),1))+list(range(ord('A'),ord('Z'),1))+list(range(ord('a'),ord('z'),1))+[ord(' ')]
         if len(sys.argv)==1:
             self.path = "./mp1.db"
         else:
             self.path = sys.argv[1]
-        self.connect()
+        # file type verify
+        if self.path[-3:] !='.db':
+            print("please input file in .db",self.path[-3:])
+            return
+        if self.connect():
+            return
         if len(sys.argv)==1:
             self.define_tables()
             self.insert_data()
@@ -33,9 +39,6 @@ class WatchMovie:
                 self.register_service_bridge()
         self.connection.close()
 
-
-
-
     def connect(self):
         # dissription:
         # connect to the database, and read data
@@ -46,11 +49,15 @@ class WatchMovie:
         # return arguments
         # None
         # ----------------------------------------------------------------
-        self.connection = sqlite3.connect(self.path)
-        self.cursor = self.connection.cursor()
-        self.cursor.execute(' PRAGMA foreign_key=ON; ')
-        self.connection.commit()
-        return
+        try:
+            self.connection = sqlite3.connect(self.path)
+            self.cursor = self.connection.cursor()
+            self.cursor.execute(' PRAGMA foreign_key=ON; ')
+            self.connection.commit()
+        except Exception as e:
+            print(e, 'fail to load your database')
+            return True
+        return False
 
 
     def define_tables(self):
@@ -200,27 +207,39 @@ class WatchMovie:
             if selection=='b':
                 return
             # check user name, if e and c are both not in user name
-            if 'e' not in user_input[0] and 'c' not in user_input[0]:
+            for i in range(len(user_input)):
+                if user_input[i]=='':
+                    input('complete your infomation\n press enter to continue')
+                    continue
+            print(user_input[0][0])
+            if user_input[0][0].lower() not in ['e','c','C','E']:
                 input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
                 continue
-            elif 'e' in user_input[0]:   # get information from the database of the username/login
-                self.cursor.execute('SELECT e.pwd FROM editors e WHERE e.eid = :id', {"id": user_input[0]})
             else:
-                self.cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0]})
-            useridrec = self.cursor.fetchone()
+                try:
+                    ex=int(user_input[0][1:])
+                except:
+                    input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
+                    continue
+            if 'e' in user_input[0].lower():   # get information from the database of the username/login
+                dbreturn,title=self.fetch_info("SELECT e.pwd FROM editors e WHERE e.eid = '{}' ".format( user_input[0].lower() ))
+            else:
+                dbreturn,title=self.fetch_info("SELECT c.pwd FROM customers c WHERE c.cid = '{}' ".format(user_input[0].lower() ))
             # find if the customer exist
-            if (useridrec == None) or (type(useridrec)!= tuple):
+            if (len(dbreturn)!=1):
                 input("2:sorry, we did not find a matching userid and password.\n enter to continue ")
+                continue
             # password matching
-            if  (user_input[1]!=useridrec[0]) :
+            if  (user_input[1]!=dbreturn[0][0]) :
                 input("3:sorry, we did not find a matching userid and password.\n enter to continue")
             else:
                 login_sucess=True
         # real person validaed 
-        if 'c' in user_input[0]: # cus panel
+        if user_input[0][0].lower() == 'c': # cus panel
             self.customers_menu(user_input[0])
-        elif 'e' in user_input[0]: # editor panel
+        elif user_input[0][0].lower() == 'e': # editor panel
             self.editors_menu(user_input[0])
+        input()
         return
 
     def editors_menu(self,eid):
@@ -336,6 +355,7 @@ class WatchMovie:
         self.connection.commit()
         # tell user process done
         input('Session {} ended.\n press enter to continue'.format(self.sessionID))
+        self.sessionID=''
         return ''
 
     def search_movie(self,cid):
@@ -521,7 +541,7 @@ class WatchMovie:
         # it means the movie already started or finshed watching in this session
         if dbreturn is not None:
             input('you are already watching or finshed this movie in this session\n press enter to gp back')
-            return False
+            self.create_new_session(cid)
         # else start register
         self.cursor.execute( "insert into watch values ({}, '{}',{},{});".format(self.sessionID,cid,mid,'NULL'))
         # record start time in the dictionary
@@ -602,11 +622,16 @@ class WatchMovie:
         if run_txt==None or run_txt=='':
             return None,None
         # get the table
-        self.cursor.execute(run_txt)
-        # fetch the table
-        data_base_return = self.cursor.fetchall()
-        # load the title
-        title_return=self.cursor.description
+        try:
+            self.cursor.execute(run_txt)
+            # fetch the table
+            data_base_return = self.cursor.fetchall()
+            # load the title
+            title_return=self.cursor.description
+        except Exception as e:
+            print(e)
+            input()
+            return [],[]
         # tittle fetching
         adj_tittle=[]
         for i in range(len(title_return)):
@@ -676,14 +701,16 @@ class WatchMovie:
                         temp_input=getpass.getpass('{}: '.format(print_format[1][int(selection)]))
                     # data validation need here
                     # only 0-9.'a'-'z','A'-'Z' allowed
-                    allow_input=list(range(ord('0'),ord('9'),1))+list(range(ord('A'),ord('Z'),1))+list(range(ord('a'),ord('z'),1))
-                    flag_input=False
-                    for i in range(len(temp_input)):
-                        if ord(temp_input[i]) not in allow_input:
-                            input('Please input 0-9,A-Z,a-z\n enter to continue')
-                            flag_input=True
-                            break
-                    if not flag_input:
+                    if print_format[1][int(selection)] not in print_format[2]:
+                        flag_input=False
+                        for i in range(len(temp_input)):
+                            if ord(temp_input[i]) not in self.allow_input:
+                                input('Please input 0-9,A-Z,a-z\n enter to continue')
+                                flag_input=True
+                                break
+                        if not flag_input:
+                            user_input[int(selection)]=temp_input
+                    else:
                         user_input[int(selection)]=temp_input
             # if user promote things that system unexpected,tell user to reenter
             elif selection.lower() not in ['b','s']:
@@ -768,9 +795,12 @@ class WatchMovie:
             print('-'*20)
             # header printing requested print it out
             if header[3]:
-                txt='#   '
+                txt='#    '
                 for i in range(len(info[0])):
-                    txt+='{:<25} '.format(header[2][i])
+                    if  header[2][i] in ['title', 'role','name','']:
+                        txt+='{:<25} '.format(header[2][i])
+                    else:
+                        txt+='{:<12} '.format(header[2][i])
                 print(txt)
             # calclate the printing index in the current page
             start=page*header[1]
@@ -784,10 +814,16 @@ class WatchMovie:
                 txt='{:<4} '.format(y-page*header[1]+1)
                 # adding each coulmn
                 for x in range(len(info[0])):
-                    if len(str(info[y][x]))<=25:
-                        txt+='{:<25} '.format(info[y][x])
-                    else:  # avoid overflow
-                        txt+='{:<23}.. '.format(info[y][x][:23])
+                    if  header[2]==[] or header[2][x] in ['title', 'role','name','']:
+                        if len(str(info[y][x]))<=25:
+                            txt+='{:<25} '.format(info[y][x])
+                        else:  # avoid overflow
+                            txt+='{:<23}.. '.format(info[y][x][:23])
+                    else:
+                        if len(str(info[y][x]))<=12:
+                            txt+='{:<12} '.format(info[y][x])
+                        else:  # avoid overflow
+                            txt+='{:<10}.. '.format(info[y][x][:10])
                 print(txt)
             # printing number of option key allow
             if header[-1]!=None:
@@ -831,7 +867,7 @@ class WatchMovie:
         # return arguments None
         # ----------------------------------------------------------------
         # set up register
-        opt_format=[3,['id_name','user name','password',],['password'],'new user register:','']
+        opt_format=[3,['user id','user name','password',],['password'],'new user register:','']
         user_input=['','','']
         register_sucess=False
         while not register_sucess:
@@ -848,14 +884,23 @@ class WatchMovie:
             if missed:
                 input('some information not complete\n press enter to continue')
             else:
+                # user id verifyication
+                if user_input[0][0].lower() not in ['e','c']:
+                    input('some information not complete\n press enter to continue')
+                    continue
+                else:
+                    try:
+                        ex=int(user_input[0][1:])
+                    except:
+                        input('some information not complete\n press enter to continue')
+                        continue
                 # find if the user are in conflict
                 if 'e' in user_input[0]:
-                    self.cursor.execute('SELECT e.eid FROM editors e WHERE e.eid = :id', {"id": user_input[0]})
+                    dbreturn,title=self.fetch_info('SELECT e.eid FROM editors e WHERE e.eid = :id', {"id": user_input[0].lower()})
                 else:
-                    self.cursor.execute('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0]})
-                useridrec = self.cursor.fetchone()
+                    dbreturn,title=self.fetch_info('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0].lower()})
                 # input the information into database
-                if useridrec==None:
+                if len(dbreturn)==0:
                     if 'e' in user_input[0]:
                         txt=''' INSERT INTO editors VALUES ('{}', '{}');'''.format(user_input[0],user_input[2])
                         print(txt)                                                      
@@ -873,7 +918,6 @@ class WatchMovie:
                     input('id exist,enter to remodify your information')
 
 
-print(__name__)
 if __name__ == "__main__":
     WatchMovie()
 
