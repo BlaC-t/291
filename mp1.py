@@ -347,7 +347,6 @@ def search_movie(cid,sessionID):
                 input('at least one have to type it\n enter to continue')
                 continue
         # here is ateset code remember to delete the code
-        print(user_input)
         count_sel=0
         # according to the user inputed,change the sql querry to what it needed to
         # line setup
@@ -396,8 +395,10 @@ def search_movie(cid,sessionID):
             return
         print(dbreturn[user_input])
         # send the user input to movie watching information
-        watch_movie_service(cid,sessionID,dbreturn[user_input][0])
-    return
+        stat=watch_movie_service(cid,sessionID,dbreturn[user_input][0])
+        if stat:
+            return True
+    return False
     
 def watch_movie_service(cid,sessionID,mid):
     # dissription:
@@ -447,8 +448,8 @@ def watch_movie_service(cid,sessionID,mid):
         elif inputsel==1: # wjump to start watch validation
             stat=start_watch(cid,sessionID,mid)
             if stat:
-                inputsel='b'
-    return
+                return True
+    return False
 
 def follow_moviepeople_service(extxt,cid,mid):
     # dissription:
