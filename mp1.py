@@ -228,6 +228,9 @@ def customers_menu(cid):
             if sessionID=='':          # clean everything in the dictionary
                 userdict.clear()
             # if returning sessionID it means session still have something unable to end it yet
+        elif sessionID != '' and str(userinput).lower()=='b': 
+            input('end you session before exit.\n enter to continue')
+            userinput=''
     return
 
 def create_new_session(cid,sessionID):
@@ -417,7 +420,7 @@ def start_watch(cid,sessionID,mid):
         input('you are already watching or finshed this movie in this session\n press enter to gp back')
         return
     # else start register
-    cursor.execute(txt = "insert into watch values ({}, '{}',{},{});".format(sessionID,cid,mid,'NULL'))
+    cursor.execute( "insert into watch values ({}, '{}',{},{});".format(sessionID,cid,mid,'NULL'))
     userdict[mid]=time.time()
     connection.commit()
     input('your movie start watching now!')
@@ -433,7 +436,7 @@ def end_watch(cid,sessionID):
     dbreturn,title=fetch_info('''SELECT watch.mid,movies.title,movies.year 
                       FROM watch,movies
                       WHERE  movies.mid=watch.mid
-                      and cid='{}' and sid={} and watch.mid is NULL'''.format(cid,sessionID))
+                      and cid='{}' and sid={} and watch.duration is NULL'''.format(cid,sessionID))
     # start getching list of unwatch movie
     if len(dbreturn) == 0:
         input('no watch found\n press enter to continue')
@@ -446,6 +449,7 @@ def end_watch(cid,sessionID):
     duration=int ((time.time() - userdict[dbreturn[re][0]])/60)
     cursor.execute('''UPDATE watch SET duration={} 
                       WHERE cid='{}' and mid={} and sid={} '''.format(duration,cid,dbreturn[re][0],sessionID))
+    connection.commit()
     try:
         del userdict[dbreturn[re][0]]
     except KeyError:
