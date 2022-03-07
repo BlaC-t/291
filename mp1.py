@@ -207,39 +207,38 @@ class WatchMovie:
             if selection=='b':
                 return
             # check user name, if e and c are both not in user name
-            for i in range(len(user_input)):
-                if user_input[i]=='':
-                    input('complete your infomation\n press enter to continue')
+            try:
+                flag=False
+                for i in range(len(user_input)):
+                    if user_input[i]=='':
+                        flag=True
+                if flag:
                     continue
-            print(user_input[0][0])
-            if user_input[0][0].lower() not in ['e','c','C','E']:
-                input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
-                continue
-            else:
-                try:
-                    ex=int(user_input[0][1:])
-                except:
+                if user_input[0][0].lower() not in ['e','c','C','E']:
                     input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
+                else:
+                    ex=int(user_input[0][1:])
+                if 'e' in user_input[0].lower():   # get information from the database of the username/login
+                    dbreturn,title=self.fetch_info("SELECT e.pwd FROM editors e WHERE e.eid = '{}' ".format( user_input[0].lower() ))
+                else:
+                    dbreturn,title=self.fetch_info("SELECT c.pwd FROM customers c WHERE c.cid = '{}' ".format(user_input[0].lower() ))
+                # find if the customer exist
+                if (len(dbreturn)!=1):
+                    input("2:sorry, we did not find a matching userid and password.\n enter to continue ")
                     continue
-            if 'e' in user_input[0].lower():   # get information from the database of the username/login
-                dbreturn,title=self.fetch_info("SELECT e.pwd FROM editors e WHERE e.eid = '{}' ".format( user_input[0].lower() ))
-            else:
-                dbreturn,title=self.fetch_info("SELECT c.pwd FROM customers c WHERE c.cid = '{}' ".format(user_input[0].lower() ))
-            # find if the customer exist
-            if (len(dbreturn)!=1):
-                input("2:sorry, we did not find a matching userid and password.\n enter to continue ")
-                continue
-            # password matching
-            if  (user_input[1]!=dbreturn[0][0]) :
-                input("3:sorry, we did not find a matching userid and password.\n enter to continue")
-            else:
-                login_sucess=True
+                # password matching
+                if  (user_input[1]!=dbreturn[0][0]) :
+                    input("3:sorry, we did not find a matching userid and password.\n enter to continue")
+                else:
+                    login_sucess=True
+            except:
+                input("1:sorry, we did not find a matching userid and password.\nenter to continue ")
+            
         # real person validaed 
         if user_input[0][0].lower() == 'c': # cus panel
             self.customers_menu(user_input[0])
         elif user_input[0][0].lower() == 'e': # editor panel
             self.editors_menu(user_input[0])
-        input()
         return
 
     def editors_menu(self,eid):
@@ -684,38 +683,43 @@ class WatchMovie:
             print('B: go back\nS: submit\n')
             # user promote their input and input check
             selection=input('your selection> ')
-            # user who select numbers to input will be transfer here
-            if selection>='0' and selection<='9':
-                # number validation
-                # this case will appear when user select something that outof range
-                # to avoid index errors
-                if int(selection)>print_format[0] or (int(selection)<=0):
-                    print('invalid selection, enter to continue')
-                    input()
-                # if password hidden
-                else:
-                    selection=str(int(selection)-1)
-                    if print_format[1][int(selection)] not in print_format[2]:  # if no hidden needed go here
-                        temp_input=input('{}: '.format(print_format[1][int(selection)]))
-                    else:   # if hidden needed go here
-                        temp_input=getpass.getpass('{}: '.format(print_format[1][int(selection)]))
-                    # data validation need here
-                    # only 0-9.'a'-'z','A'-'Z' allowed
-                    if print_format[1][int(selection)] not in print_format[2]:
-                        flag_input=False
-                        for i in range(len(temp_input)):
-                            if ord(temp_input[i]) not in self.allow_input:
-                                input('Please input 0-9,A-Z,a-z\n enter to continue')
-                                flag_input=True
-                                break
-                        if not flag_input:
-                            user_input[int(selection)]=temp_input
-                    else:
-                        user_input[int(selection)]=temp_input
             # if user promote things that system unexpected,tell user to reenter
-            elif selection.lower() not in ['b','s']:
-                print('invalid selection, enter to continue')
+            # number validation
+            # this case will appear when user select something that outof range
+            # to avoid index errors
+            if selection.lower() in ['b','s']:
+                break
+            if selection == '' or len(selection)!=1:
+                print('1,invalid selection, enter to continue')
                 input()
+            else:
+                try:   # user who select numbers to input will be transfer here
+                    sel=int(selection)
+                    if sel>print_format[0] or sel<1:
+                        raise Exception
+                except:
+                    print('2,invalid selection, enter to continue')
+                    input()
+                    continue
+                # if password hidden
+                selection=str(int(selection)-1)
+                if print_format[1][int(selection)] not in print_format[2]:  # if no hidden needed go here
+                    temp_input=input('{}: '.format(print_format[1][sel-1]))
+                else:   # if hidden needed go here
+                    temp_input=getpass.getpass('{}: '.format(print_format[1][sel-1]))
+                # data validation need here
+                # only 0-9.'a'-'z','A'-'Z' allowed
+                if print_format[1][sel-1] not in print_format[2]:
+                    flag_input=False
+                    for i in range(len(temp_input)):
+                        if ord(temp_input[i]) not in self.allow_input:
+                            input('Please input 0-9,A-Z,a-z\n enter to continue')
+                            flag_input=True
+                            break
+                    if not flag_input:
+                        user_input[int(selection)]=temp_input
+                else:
+                    user_input[int(selection)]=temp_input
         # return data
         return user_input,selection.lower()                    
 
@@ -841,20 +845,23 @@ class WatchMovie:
                 return selection
             elif selection == 'n' and page<max_page: # next pg
                 page+=1
+                continue
             elif selection =='l' and page>=1: # last pg
                 page-=1
+            elif selection =='':
+                input("invalid input\nenter to continue")
             else: # number validation
                 try:
-                    if int(selection)-1<0:
+                    if int(selection)<1:
                         input("invalid input\nenter to continue")
                         continue
-                    elif int(selection)-1>=header[1]:
+                    elif int(selection)>header[1]:
                         input("invalid input\nenter to continue")
                         continue
+                    selected=True
                 except: # all other wired staff go here
                     input("invalid input\nenter to continue")
                     continue
-                selected=True
         # tranform back to user index
         # selection == 'b' return b,another will all return interger index
         return int(selection)-1+header[1]*page
@@ -896,22 +903,27 @@ class WatchMovie:
                         continue
                 # find if the user are in conflict
                 if 'e' in user_input[0]:
-                    dbreturn,title=self.fetch_info('SELECT e.eid FROM editors e WHERE e.eid = :id', {"id": user_input[0].lower()})
+                    dbreturn,title=self.fetch_info("SELECT e.eid FROM editors e WHERE e.eid = '{}'".format(user_input[0].lower()))
                 else:
-                    dbreturn,title=self.fetch_info('SELECT c.pwd FROM customers c WHERE c.cid = :id', {"id": user_input[0].lower()})
+                    dbreturn,title=self.fetch_info("SELECT c.pwd FROM customers c WHERE c.cid = '{}'".format(user_input[0].lower()))
                 # input the information into database
                 if len(dbreturn)==0:
                     if 'e' in user_input[0]:
                         txt=''' INSERT INTO editors VALUES ('{}', '{}');'''.format(user_input[0],user_input[2])
-                        print(txt)                                                      
-                        self.cursor.execute(txt)
-                        self.connection.commit()
+                        try:                                                      
+                            self.cursor.execute(txt)
+                            self.connection.commit()
+                        except:
+                            input('some information not complete\n press enter to continue')
                         register_sucess=True
                         input('Sucess! use {} as your login credentials'.format(user_input[0]))
                     if 'c' in user_input[0]:
                         txt=''' INSERT INTO customers VALUES ('{}', '{}', '{}');'''.format(user_input[0],user_input[1],user_input[2])
-                        self.cursor.execute(txt)
-                        self.connection.commit()
+                        try:
+                            self.cursor.execute(txt)
+                            self.connection.commit()
+                        except:
+                            input('some information not complete\n press enter to continue')
                         register_sucess=True
                         input('Sucess! use {} as your login credentials'.format(user_input[0]))
                 else:
