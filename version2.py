@@ -190,7 +190,6 @@ def login_screen():
 
 
 def editors_menu(eid):
-
     os.system('cls')
     txt = "Login in as editor {}".format(eid)
     info = [['Add a movie'], ['Select report']]
@@ -213,11 +212,12 @@ def editors_menu(eid):
     return
 
 
-def add_movie(): # 如果input的输入格式不对 怎么解决
+def add_movie():
     global connection, cursor
     os.system('cls')
 
-    opt_format = [4, ['mid', 'Title', 'Year', 'Runtime'], [], 'Select what do you want to input: ', 'All entry are mandory!']
+    opt_format = [4, ['mid', 'Title', 'Year', 'Runtime'], [], 'Select what do you want to input: ',
+                  'All entry are mandory!']
     user_input = ['', '', '', '']
     num = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
     dbreturn = []
@@ -226,7 +226,7 @@ def add_movie(): # 如果input的输入格式不对 怎么解决
     while not unadded:
         user_input, selection = list_input_menu(opt_format, user_input)
 
-        if str(user_input).lower not in ['0', '1', '2', '3', 'b', 's']:
+        if str(selection).lower not in ['1', '2', '3', '4', 'b', 's']:
             print("Please follow instruction! \n ")
 
         if selection == 'b':
@@ -275,6 +275,9 @@ def insert_caster():
     while not not_exits:
         user_input, selection = list_input_menu(opt_format, user_input)
 
+        if str(selection).lower not in ['1', '2', 'b', 's']:
+            print("Please follow instruction! \n ")
+
         if selection == 'b':
             return
 
@@ -285,11 +288,13 @@ def insert_caster():
                         FROM moviePeople mp
                         WHERE mp.pid = :entered
                         '''
-        cursor.execute(find_caster, {"entered" : user_input[1]})
+        cursor.execute(find_caster, {"entered": user_input[1]})
         not_same = cursor.fetchone()
 
         if int(not_same) == 0:
-            input("There is no movie people with pid: {} \nPlease create a profile for new movie people \nPress enter to continue").format(user_input)
+            input(
+                "There is no movie people with pid: {} \nPlease create a profile for new movie people \nPress enter to continue").format(
+                user_input)
             continue
         else:
             not_exits = True
@@ -307,7 +312,7 @@ def insert_caster():
 
 def new_mp():
     global connection, cursor
-    os.system('clear')
+    os.system('cls')
 
     opt_format = [3, ["pid", 'Name', 'Birth year'], [], "Select what you want to input:", "All Entry is mondatory!"]
     user_input = ['', '', '']
@@ -317,7 +322,7 @@ def new_mp():
     while not unadded:
         user_input, selection = list_input_menu(opt_format, user_input)
 
-        if str(user_input) not in ['0', '1', '2', '3', 'b', 's']:
+        if str(user_input) not in ['1', '2', '3', 'b', 's']:
             print("Please follow instruction! \n ")
 
         if selection == 'b':
@@ -329,7 +334,6 @@ def new_mp():
             else:
                 continue
         print(user_input)
-
         exists_caster = '''SELECT count(*)
                            FROM moviePeople mp
                            WHERE mp.pid = {} 
@@ -350,14 +354,222 @@ def new_mp():
     print(txt)
 
 
-
-
-
-
-
 def report():
-    os.system('clear')
-    input()
+    global connection, cursor
+    os.system('cls')
+
+    opt_format = [3, ['Monthly report', 'Annually report', 'All-time report'], [], "Select your choice: ", ""]
+    user_input = ['', '', '', '']
+
+    user_input = list_input_menu(opt_format, user_input)
+
+    if str(user_input).lower not in ['1', '2', '3', 'b', 's']:
+        print("Please follow instruction! \n ")
+
+    if user_input == 'b':
+        return
+
+    annual = '''
+            select * from watch m1,watch m2 
+            inner join sessions s1 on s1.sid = m1.sid
+            inner join sessions s2 on s2.sid = m2.sid
+            inner join movies mv1 on m1.mid = mv1.mid
+            inner join movies mv2 on m2.mid = mv2.mid
+            left join recommendations rec on rec.watched= m1.mid and rec.recommended=m2.mid
+            where m1.mid<>m2.mid and m1.cid=m2.cid and s1.sdate<s2.sdate
+            and (mv1.runtime)/2<=m1.duration and (mv2.runtime)/2<=m2.duration
+            and s1.sdate >= date ('now','-365 days') and s1.sdate < date('now')
+            and s2.sdate >= date ('now','-365 days') and s2.sdate < date('now')
+            group by m1.mid,m2.mid
+            order by count(*),s2.sdate desc;
+            '''
+
+    cursor.execute(annual)
+    connection.commit()
+    txt1 = cursor.fetchone()
+
+    month = '''
+            select * from watch m1,watch m2 
+            inner join sessions s1 on s1.sid = m1.sid
+            inner join sessions s2 on s2.sid = m2.sid
+            inner join movies mv1 on m1.mid = mv1.mid
+            inner join movies mv2 on m2.mid = mv2.mid
+            left join recommendations rec on rec.watched= m1.mid and rec.recommended=m2.mid
+            where m1.mid<>m2.mid and m1.cid=m2.cid and s1.sdate<s2.sdate
+            and (mv1.runtime)/2<=m1.duration and (mv2.runtime)/2<=m2.duration
+            and s1.sdate >= date ('now','-31 days') and s1.sdate < date('now')
+            and s2.sdate >= date ('now','-31 days') and s2.sdate < date('now')
+            group by m1.mid,m2.mid
+            order by count(*),s2.sdate desc;
+            '''
+    cursor.execute(month)
+    connection.commit()
+    txt2 = cursor.fetchone()
+
+    all_time = '''
+            select * from watch m1,watch m2 
+            inner join sessions s1 on s1.sid = m1.sid
+            inner join sessions s2 on s2.sid = m2.sid
+            inner join movies mv1 on m1.mid = mv1.mid
+            inner join movies mv2 on m2.mid = mv2.mid
+            left join recommendations rec on rec.watched= m1.mid and rec.recommended=m2.mid
+            where m1.mid<>m2.mid and m1.cid=m2.cid and s1.sdate<s2.sdate
+            and (mv1.runtime)/2<=m1.duration and (mv2.runtime)/2<=m2.duration
+            group by m1.mid,m2.mid
+            order by count(*),s2.sdate desc;
+            '''
+    cursor.execute(all_time)
+    connection.commit()
+    txt3 = cursor.fetchone()
+
+    if str(user_input) == '1':
+        print(txt2)
+    elif str(user_input) == '2':
+        print(txt1)
+    elif str(user_input) == '3':
+        print(txt3)
+
+
+def change_rec():
+    # 加在report list后面 让他选
+
+    global connection, cursor
+    os.system('cls')
+
+    opt_format = [3, ['Add recommendation', 'Update score', 'Delete recommendation'], [], "Select your choice: ", ""]
+    user_input = ['', '', '']
+
+    user_input = list_input_menu(opt_format, user_input)
+
+    if str(user_input).lower() not in ['1', '2', '3', 'b', 's']:
+        print("Please follow instruction! \n ")
+
+    if user_input == 'b':
+        return
+
+    if str(user_input).lower() == '1':
+        add()
+    elif str(user_input).lower() == '2':
+        update_score()
+    elif str(user_input).lower() == '3':
+        delete()
+
+
+def add():
+    os.system('cls')
+    format_1 = [3, ['Watched movie id: ', 'Recommended movie id: ', 'Score'], [], "Fill in all the blanks",
+                "All slots are mondatory"]
+    user_input_1 = ['', '', '']
+    not_exists = False
+
+    if str(user_input_1).lower() not in ['1', '2', '3', 'b', 's']:
+        print("Please follow instruction! \n ")
+
+    if user_input_1 == 'b':
+        return
+
+    for i in range(len(user_input_1)):
+        if user_input_1[i] == '':
+            break
+        else:
+            continue
+    print(user_input_1)
+
+    while not not_exists:
+        user_input_1 = list_input_menu(format_1, user_input_1)
+
+        check = '''
+                        SELECT count(*)
+                        FROM recommendations r
+                        WHERE r.watched = ?
+                        And r.recommended = ?
+                        '''
+        form1 = (user_input_1[0], user_input_1[1])
+        cursor.execute(check, form1)
+        connection.commit()
+
+        if check != 0:
+            input("The recommendation already exists \nPress enter to continue")
+            continue
+        else:
+            not_exists = True
+
+    add = '''INSERT INTO recommendations(watched, recommended, score)
+                    VALUES (?, ?, ?)
+                    '''
+    form1_all = (user_input_1[0], user_input_1[1], user_input_1[2])
+    cursor.execute(add, form1_all)
+    connection.commit()
+    print(cursor.fetchone())
+
+
+def update_score():
+    global connection, cursor
+    os.system('cls')
+
+    opt_format = [3, ['Enter what you have watched: ', 'Enter what you have recommended: ' 'You want to change the score to: '], [], "Please enter your changes", "All slots is mandatory"]
+    user_input = ['', '', '']
+
+    if str(user_input).lower() not in ['1', '2', '3', 'b', 's']:
+        print("Please follow instruction! \n ")
+
+    if user_input == 'b':
+        return
+
+    for i in range(len(user_input)):
+        if user_input[i] == '':
+            break
+        else:
+            continue
+    print(user_input)
+
+    user_input = list_input_menu(opt_format, user_input)
+
+    update = '''
+                UPDATE recommendations
+                SET score = ?
+                WHERE watched = ?
+                And recommended = ?                
+                '''
+    form = (user_input[2], user_input[0], user_input[1])
+    cursor.execute(update, form)
+    connection.commit()
+    print(cursor.fetchone())
+
+
+def delete():
+    global connection, cursor
+    os.system('cls')
+
+    opt_format = [3, ['Enter what you have watched: ', 'Enter what you have recommended: ' 'What is your score is: '], [], "Please enter the info for which recommendation you want to delete", "All slots is mandatory"]
+    user_input = ['', '', '']
+
+    if str(user_input).lower() not in ['1', '2', '3', 'b', 's']:
+        print("Please follow instruction! \n ")
+
+    if user_input == 'b':
+        return
+
+    for i in range(len(user_input)):
+        if user_input[i] == '':
+            break
+        else:
+            continue
+    print(user_input)
+
+    user_input = list_input_menu(opt_format, user_input)
+
+    get_rid = '''
+                DELETE FROM recommendations r
+                WHERE r.watched = ?
+                And r.recommended = ?
+                And r.score = ?
+                '''
+
+    form = (user_input[0], user_input[1], user_input[2])
+    cursor.execute(get_rid, form)
+    connection.commit()
+    print(cursor.fetchone())
 
 
 def customers_menu(cid):
