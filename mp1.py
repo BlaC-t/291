@@ -480,7 +480,10 @@ class WatchMovie:
             if inputsel==0: # jump to follow moviepeople
                 self.follow_moviepeople_service(extxt,cid,mid)
             elif self.sessionID=='' and inputsel==1: # want to start watch but no session ID
-                input('sorry we did not find your session\n press enter to continue.')
+                self.create_new_session(cid)
+                stat=self.start_watch(cid,mid)
+                if stat:
+                    return True
             elif inputsel==1: # wjump to start watch validation
                 stat=self.start_watch(cid,mid)
                 if stat:
@@ -540,7 +543,6 @@ class WatchMovie:
         # it means the movie already started or finshed watching in this session
         if dbreturn is not None:
             input('you are already watching or finshed this movie in this session\n press enter to gp back')
-            self.create_new_session(cid)
         # else start register
         self.cursor.execute( "insert into watch values ({}, '{}',{},{});".format(self.sessionID,cid,mid,'NULL'))
         # record start time in the dictionary
