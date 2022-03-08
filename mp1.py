@@ -1,3 +1,4 @@
+from logging import info
 import sqlite3
 import time,datetime
 import hashlib
@@ -11,7 +12,7 @@ class WatchMovie:
         self.connection = None
         self.cursor = None
         self.userdict={}
-        self.allow_input=list(range(ord('0'),ord('9')+1,1))+list(range(ord('A'),ord('Z')+1,1))+list(range(ord('a'),ord('z')+1,1))+[ord(' ')]
+        self.allow_input=list(range(ord('0'),ord('9')+1,1))+list(range(ord('A'),ord('Z')+1,1))+list(range(ord('a'),ord('z')+1,1))+[ord(' '),ord('.')]
         if len(sys.argv)==1:
             self.path = "./mp1.db"
         else:
@@ -27,7 +28,7 @@ class WatchMovie:
             self.insert_data()
         info=[['log in'],['register']]
         txt1='Welcome screen\nconnected to database {}'.format(self.path)
-        header=[len(info),0,[],False,txt1,'']
+        header=[len(info),0,[''],False,txt1,'']
         welcome=''
         while str(welcome).lower()!='b':
             welcome=self.select_menu(info,header)
@@ -245,7 +246,7 @@ class WatchMovie:
         os.system('clear')
         txt = "Login in as editor {}".format(eid)
         info = [['Add a movie'], ['Select report'],['add caster']]
-        header = [len(info), 0, [], False, txt, '']
+        header = [len(info), 0, [''], False, txt, '']
 
         userinput = ''
         self.userdict.clear()
@@ -361,8 +362,6 @@ class WatchMovie:
 
 
     def new_mp(self,pid,name):
-        os.system('clear')
-
         opt_format = [3, ["pid", 'Name', 'Birth year'], [], "Select what you want to input:", "All Entry is mondatory!"]
         user_input = [pid, name, '']
 
@@ -405,11 +404,179 @@ class WatchMovie:
 
 
 
-    def report():
+    def report(self):
         os.system('clear')
-        input()
+
+        opt_format = [3, 0, [''],False, "Select your choice: ", ""]
+        info=[['Monthly report'], ['Annually report'], ['All-time report']]
+        selected= False
+
+        while not selected:
+            user_input = self.select_menu(info, opt_format)
+
+            if str(user_input).lower not in ['1', '2', '3', 'b', 's']:
+                print("Please follow instruction! \n ")
+
+            if user_input == 'b':
+                return
+            else:
+                selected = True
+
+        p1='''
+                select m1.mid,mv1.title,m2.mid,mv2.title,count(*),(rec.score is not null) as in_recomendation,rec.score from watch m1,watch m2 
+                inner join sessions s1 on s1.sid = m1.sid
+                inner join sessions s2 on s2.sid = m2.sid
+                inner join movies mv1 on m1.mid = mv1.mid
+                inner join movies mv2 on m2.mid = mv2.mid
+                left join recommendations rec on rec.watched= m1.mid and rec.recommended=m2.mid
+                where m1.mid<>m2.mid and m1.cid=m2.cid and s1.sdate<s2.sdate
+                and (mv1.runtime)/2<=m1.duration and (mv2.runtime)/2<=m2.duration'''
+        l365=''' and s1.sdate >= date ('now','-365 days') and s1.sdate < date('now')
+                and s2.sdate >= date ('now','-365 days') and s2.sdate < date('now')'''
+        l30=''' and s1.sdate >= date ('now','-31 days') and s1.sdate < date('now')
+                and s2.sdate >= date ('now','-31 days') and s2.sdate < date('now')'''
+        p2=''' group by m1.mid,m2.mid order by count(*),s2.sdate desc;'''
 
 
+        if str(user_input) == '0':
+            qu=p1+l30+p2
+        elif str(user_input) == '1':
+            qu=p1+l365+p2
+        elif str(user_input) == '2':
+            qu=p1+p2
+        selected= False
+        
+        while not selected:
+            dbreturn,title=self.fetch_info(qu)
+            #print(dbreturn)
+            #input()
+            if len(dbreturn) == 0:
+                input("empty result\n emptyto continue")
+                return
+            opt_format = [len(dbreturn), 10, title,True, "Select your choice: ", "if you want to delete a pair type any number to enter next menu"]
+            usrinput=self.select_menu(dbreturn,opt_format)
+            mem=usrinput
+            if str(usrinput).lower() =='b':
+                return
+            else:
+                ee=dbreturn[mem]
+                self.change_rec(ee)
+
+
+    def change_rec(self,selection):
+        print (selection)
+        # 加在report list后面 让他选
+        txt1="select your choice:\nwatched movie 1: {}\n watched movie 2:{}\n".format(selection[1],selection[3])
+        if selection[-1]!='NULL':
+            txt1+="current score: {}".format(selection[-1])
+        else:
+            txt1+="not in current list yet\n"
+        info=[['Add recommendation'],['update score'], ['Delete recommendation']]
+        opt_format = [len(info), 0, [''],False, txt1, ""]
+
+        user_input = self.select_menu(info,opt_format)
+
+        if str(user_input).lower() not in ['1', '2', '3', 'b', 's']:
+            print("Please follow instruction! \n ")
+
+        if user_input == 'b':
+            return
+        if str(user_input) == '0':
+            if selection[-1] == None:
+                self.add_score(selection,txt1)
+            else:
+                input("record in recommendation exist")
+        elif str(user_input) == '1':
+            if selection[-1]!= None:
+                self.update_score(selection,txt1)
+            else:
+                input("record in recommendation not exist")
+        elif str(user_input) == '2':
+                self.delete_score()
+            
+
+
+    def add_score(self, selection,txt1):
+        format_1 = [1, [ 'Score'], [], "Fill in all the blanks:\n"+txt1,""]
+        user_input = ['']
+        not_complete = True
+        while not_complete:
+            user_input,choice=self.list_input_menu(format_1, user_input)
+            if str(choice).lower() not in ['1', 'b', 's']:
+                print("Please follow instruction! \n ")
+            elif str(choice) == 'b':
+                return
+            else:
+                try:
+                    ex=float(user_input[0])
+                    if ex<0 or ex>1:
+                        raise Exception
+                    not_complete=False
+                except:
+                    input("input should be a float between 0-1")
+
+        add_rec = '''INSERT INTO recommendations(watched, recommended, score)
+                        VALUES ('{}', '{}', '{}')
+                        '''.format(selection[0], selection[2], user_input[0])
+        self.cursor.execute(add_rec)
+        self.connection.commit()
+        input('sucessly input')
+        
+    def update_score(self, selection,txt1):
+        format_1 = [1, [ 'Score'], [], "Fill in all the blanks:\n"+txt1,""]
+        user_input = ['']
+        not_complete = True
+        while not_complete:
+            user_input,choice=self.list_input_menu(format_1, user_input)
+            if str(choice).lower() not in ['1', 'b', 's']:
+                print("Please follow instruction! \n ")
+            elif str(choice) == 'b':
+                return
+            else:
+                try:
+                    ex=float(user_input[0])
+                    if ex<0 or ex>1:
+                        raise Exception
+                    not_complete=False
+                except:
+                    input("input should be a float between 0-1")
+
+        update_sec = '''
+                    UPDATE recommendations
+                    SET score = '{}'
+                    WHERE watched = '{}'
+                    And recommended = '{}'                
+                    '''.format(user_input[0],selection[0], selection[2] )
+        self.cursor.execute(update_sec)
+        self.connection.commit()
+        print(self.cursor.fetchone())
+
+    def delete_score(self):
+        selected=False
+        get_rec='''select m1.mid,m1.title,m2.mid,m2.title,
+                    rec.score from recommendations rec,movies m1, movies m2
+                    where m1.mid = rec.watched 
+                    and m2.mid = rec.recommended;'''
+        while not selected:
+            dbreturn,title=self.fetch_info(get_rec)
+            if len(dbreturn)==0:
+                input('northing in recommendations,press enter to continue')
+                return
+            opt_format = [len(dbreturn), 10, title,False, "select the one to delete", ""]
+            userselect=self.select_menu(dbreturn,opt_format)
+            ee=userselect
+            if str(userselect).lower() == 'b':
+                return
+            else:
+                print(dbreturn[ee][0], dbreturn[ee][2])
+                get_rid = '''
+                            DELETE FROM recommendations
+                            WHERE recommendations.watched = '{}'
+                            And recommendations.recommended = '{}'
+                            '''.format(dbreturn[ee][0], dbreturn[ee][2])
+                self.cursor.execute(get_rid)
+                self.connection.commit()
+                input('your recommendations {} -> {} has been removed.'.format(dbreturn[ee][1],dbreturn[ee][3]))
 
     def customers_menu(self,cid):
         # dissription:
@@ -425,7 +592,7 @@ class WatchMovie:
         txt1="Login in as customer {}".format(cid)
         txt2="no session ID assiged this moment"
         info=[['Start a session'],['Search for movie'],['end watching a movie'],['end the session']]
-        header=[len(info),0,[],False,txt1,txt2]
+        header=[len(info),0,[''],False,txt1,txt2]
         userinput=''# see line 206, detact if end while loop needed
         self.userdict.clear()  # clean the dictionary
         while str(userinput).lower()!='b':
@@ -636,7 +803,7 @@ class WatchMovie:
         txt1=txt1+'{} Customer watched this movie\n'.format(dbreturn[0][0])+'-'*30+'\n'
         # setup select option
         info=[['follow a cast'],['start watching']]
-        header=[len(info),0,[],False,txt1,'']
+        header=[len(info),0,[''],False,txt1,'']
         inputsel=''
         # in loop selection
         while str(inputsel).lower()!='b':
@@ -967,10 +1134,10 @@ class WatchMovie:
             if header[3]:
                 txt='#    '
                 for i in range(len(info[0])):
-                    if  header[2][i] in ['title', 'role','name','']:
+                    if  header[2][i] in ['title', 'role','name',''] or header[3]==False:
                         txt+='{:<25} '.format(header[2][i])
                     else:
-                        txt+='{:<12} '.format(header[2][i])
+                        txt+='{:<8} '.format(header[2][i])
                 print(txt)
             # calclate the printing index in the current page
             start=page*header[1]
@@ -984,16 +1151,23 @@ class WatchMovie:
                 txt='{:<4} '.format(y-page*header[1]+1)
                 # adding each coulmn
                 for x in range(len(info[0])):
-                    if  header[2]==[] or header[2][x] in ['title', 'role','name','']:
+                    if info[y][x]==None :
+                        txt+=(' '*13)
+                    elif header[2][x] in ['in_recomendation']:
+                        if info[y][x] == True :
+                            txt=txt+'True'+(' '*9)
+                        else:
+                            txt=txt+'False'+(' '*8)
+                    elif  header[2]==[] or header[2][x] in ['title', 'role','name',''] or header[3]==False:
                         if len(str(info[y][x]))<=25:
                             txt+='{:<25} '.format(info[y][x])
                         else:  # avoid overflow
                             txt+='{:<23}.. '.format(info[y][x][:23])
                     else:
-                        if len(str(info[y][x]))<=12:
-                            txt+='{:<12} '.format(info[y][x])
+                        if len(str(info[y][x]))<=8:
+                            txt+='{:<8} '.format(info[y][x])
                         else:  # avoid overflow
-                            txt+='{:<10}.. '.format(info[y][x][:10])
+                            txt+='{:<6}.. '.format(info[y][x][:10])
                 print(txt)
             # printing number of option key allow
             if header[-1]!=None:
