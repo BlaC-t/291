@@ -307,7 +307,7 @@ def insert_caster():
 
 def new_mp():
     global connection, cursor
-    os.system('cls')
+    os.system('clear')
 
     opt_format = [3, ["pid", 'Name', 'Birth year'], [], "Select what you want to input:", "All Entry is mondatory!"]
     user_input = ['', '', '']
@@ -356,7 +356,7 @@ def new_mp():
 
 
 def report():
-    os.system('cls')
+    os.system('clear')
     input()
 
 

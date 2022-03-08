@@ -11,7 +11,7 @@ class WatchMovie:
         self.connection = None
         self.cursor = None
         self.userdict={}
-        self.allow_input=list(range(ord('0'),ord('9'),1))+list(range(ord('A'),ord('Z'),1))+list(range(ord('a'),ord('z'),1))+[ord(' ')]
+        self.allow_input=list(range(ord('0'),ord('9')+1,1))+list(range(ord('A'),ord('Z')+1,1))+list(range(ord('a'),ord('z')+1,1))+[ord(' ')]
         if len(sys.argv)==1:
             self.path = "./mp1.db"
         else:
@@ -243,9 +243,173 @@ class WatchMovie:
 
     def editors_menu(self,eid):
         os.system('clear')
-        print("Login in as editor {}".format(eid))
-        input("press enter to exit")
+        txt = "Login in as editor {}".format(eid)
+        info = [['Add a movie'], ['Select report'],['add caster']]
+        header = [len(info), 0, [], False, txt, '']
+
+        userinput = ''
+        self.userdict.clear()
+        while str(userinput).lower() != 'b':
+            os.system('clear')
+
+            userinput = self.select_menu(info, header)
+            if str(userinput) not in ['0', '1', '2' ,'b', 's']:
+                print("Please follow instruction! \n ")
+            elif str(userinput) == '0':
+                movinfo=self.add_movie()
+                self.insert_caster(movinfo)
+            elif str(userinput) == '1':
+                self.report()
+            elif str(userinput) == '2':
+                self.insert_caster()
         return
+
+    def add_movie(self): # 如果input的输入格式不对 怎么解决E
+        os.system('clear')
+        # formation printing
+        opt_format = [4, ['mid', 'Title', 'Year', 'Runtime'], [], 'Select what do you want to input: ', 'All entry are mandory!']
+        user_input = ['', '', '', '']
+        num = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+        dbreturn = []
+        unadded = False
+
+        while not unadded:
+            user_input, selection = self.list_input_menu(opt_format, user_input)
+
+            if str(user_input).lower not in ['0', '1', '2', '3', 'b', 's']:
+                print("Please follow instruction! \n ")
+
+            if selection == 'b':
+                return
+
+            for i in range(len(user_input)):
+                if user_input[i] == '':
+                    break
+                else:
+                    continue
+            print(user_input)
+
+            not_in = '''SELECT count(*) 
+                        FROM movies m
+                        WHERE m.mid = :new_mid
+                        '''
+            self.cursor.execute(not_in, {"new_mid": user_input[0]})
+
+            not_inc = self.cursor.fetchone()
+            print(not_inc[0])
+
+            if int(not_inc[0]) > 0:
+                input("The movie ID already exits!\n Press enter to continue")
+                continue
+            else:
+                unadded = True
+
+        insert_txt = '''INSERT INTO movies (mid, title, year, runtime) VALUES ('{}','{}','{}','{}');'''.format(user_input[0], user_input[1], user_input[2], user_input[3])
+        self.cursor.execute(insert_txt)
+        self.connection.commit()
+        txt = self.cursor.fetchone()
+        print(txt)
+        return user_input
+
+    def insert_caster(self,mov=None):
+        add_comp=False
+
+        while not add_comp:
+            opt_format = [3, ["Enter your caster's pid: ", 'name of movie people','role'], [], "Please assign roles to casters", ""]
+            user_input = ['', '','']
+
+            not_exits = False
+
+            while not not_exits:
+                user_input, selection = self.list_input_menu(opt_format, user_input)
+
+                if selection == 'b':
+                    return
+
+                print(user_input)
+
+                find_caster = '''
+                                SELECT count(*)
+                                FROM moviePeople mp
+                                WHERE mp.pid = '{}' and lower(mp.name) like "%{}%"
+                                '''.format(user_input[0],user_input[1])
+                dbreturn,tittle=self.fetch_info(find_caster)
+                
+                print(dbreturn)
+
+                if int(dbreturn[0][0]) == 0:
+                    exi=input("There is no movie people with pid: {} \n (Y) create new profile (N) check information again").format(user_input)
+                    if exi.lower()=='y':
+                        if self.new_mp(user_input[0],user_input[1]):
+                            input('please press and validate information again')
+                else:
+                    not_exits = True
+                    input('found')
+            # connect to the movie
+            if mov!=None:
+                find_caster_in_mov='''select pid from casts where pid='{}' and mid={}'''.format(user_input[0],mov[0])
+                dbreturn,t=self.fetch_info(find_caster_in_mov)
+                if len(dbreturn)>0:
+                    input('infomation already exist\n enter to continue')
+                else:
+                    exi=input('let {} enroll in {} as {} (Y/N)'.format(user_input[1],mov[1],user_input[2]))
+                    if exi.lower()=='y':
+                        insert_new = '''INSERT INTO casts(mid, pid, role) VALUES ('{}', '{}', '{}')'''.format(mov[0],user_input[0],user_input[2])
+                        self.cursor.execute(insert_new)
+                        self.connection.commit()
+
+
+
+    def new_mp(self,pid,name):
+        os.system('clear')
+
+        opt_format = [3, ["pid", 'Name', 'Birth year'], [], "Select what you want to input:", "All Entry is mondatory!"]
+        user_input = [pid, name, '']
+
+        unadded = False
+
+        while not unadded:
+            user_input, selection = self.list_input_menu(opt_format, user_input)
+
+            if str(user_input) not in ['0', '1', '2', '3', 'b', 's']:
+                print("Please follow instruction! \n ")
+
+            if selection == 'b':
+                return False
+
+            for i in range(len(user_input)):
+                if user_input[i] == '':
+                    break
+                else:
+                    continue
+            print(user_input)
+
+            exists_caster = '''SELECT count(*)
+                            FROM moviePeople mp
+                            WHERE mp.pid = '{}' 
+                                '''
+            dbreturn,title=self.fetch_info(exists_caster.format(user_input[0]))
+            print(dbreturn[0][0])
+            if int(dbreturn[0][0]) > 0:
+                input("The caster already exists! \nPress enter to continue")
+                continue
+            else:
+                unadded = True
+
+        insert_new = '''INSERT INTO moviePeople(pid, name, birthYear) VALUES ('{}', '{}', '{}')'''.format(user_input[0],user_input[1],user_input[2])
+        self.cursor.execute(insert_new)
+        self.connection.commit()
+        txt = self.cursor.fetchone()
+        input(' new people {} add to movie People.'.format(user_input[1]))
+        return True
+
+
+
+    def report():
+        os.system('clear')
+        input()
+
+
 
     def customers_menu(self,cid):
         # dissription:
